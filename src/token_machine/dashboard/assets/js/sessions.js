@@ -72,7 +72,7 @@ function sourceIconName(source) {
   const key = String(source || "").toLowerCase();
   if (key.includes("codex")) return "codex.svg";
   if (key.includes("claudecode")) return "claudecode.svg";
-  if (key.includes("gemini")) return "gemini.svg";
+  if (key.includes("gemini")) return "geminicli.svg";
   if (key.includes("openai")) return "openai.svg";
   return "";
 }

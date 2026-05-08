@@ -58,6 +58,7 @@ def candidate_names() -> list[str]:
         for member in enum_cls:
             if member not in skip:
                 names[member.value.lower()] = None
+    names["geminicli"] = None
     return list(names)
 
 

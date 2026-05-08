@@ -30,10 +30,13 @@ class ClaudeSource:
         return discover_jsonl_files(root)
 
     def detect(self, objects: Sequence[Mapping[str, object]], path: Path) -> bool:
-        if ".claude" in str(path):
+        path_text = str(path)
+        if ".claude" in path_text:
             return True
+        if ".gemini" in path_text:
+            return False
         return any(
-            obj.get("sessionId") or obj.get("userType") == "external"
+            "message" in obj or "version" in obj or obj.get("userType") == "external"
             for obj in objects[:20]
         )
 

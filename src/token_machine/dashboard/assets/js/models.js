@@ -173,7 +173,7 @@ function descriptionFor(name) {
 function appDisplayName(source) {
   const value = String(source || "unknown").toLowerCase();
   if (value === "codex") return "Codex CLI";
-  if (value === "claude") return "Claude Code";
+  if (value === "claudecode" || value === "claude") return "Claude Code";
   if (value === "gemini") return "Gemini CLI";
   return value.charAt(0).toUpperCase() + value.slice(1);
 }
@@ -182,7 +182,7 @@ function sourceIconName(source) {
   const key = String(source || "").toLowerCase();
   if (key.includes("codex")) return "codex.svg";
   if (key.includes("claude")) return "claudecode.svg";
-  if (key.includes("gemini")) return "gemini.svg";
+  if (key.includes("gemini")) return "geminicli.svg";
   if (key.includes("openai")) return "openai.svg";
   return "";
 }

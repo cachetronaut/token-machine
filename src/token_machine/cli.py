@@ -102,7 +102,7 @@ def serve(
         joined = ", ".join(str(path) for path in DEFAULT_WATCH_PATHS)
         typer.echo(f"Watching {joined} every {max(5, watch_interval)} seconds")
     typer.echo(f"Serving Token Machine at http://{host}:{port}/")
-    uvicorn.run(create_app(store), host=host, port=port, log_level="warning")
+    uvicorn.run(create_app(store), host=host, port=port, log_level="debug")
 
 
 @app.command()

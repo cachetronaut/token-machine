@@ -24,4 +24,5 @@ def icon_filenames() -> frozenset[str]:
         for member in enum_cls:
             if member not in skip:
                 names.add(f"{member.value.lower()}.svg")
+    names.add("geminicli.svg")
     return frozenset(names)
