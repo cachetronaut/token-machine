@@ -41,7 +41,7 @@ The default store is platform-specific and local to the current user. Use `--sto
 
 ## Assets
 
-The dashboard vendors a small Lobe Icons SVG subset so it renders offline after installation. See `THIRD_PARTY_NOTICES.md` for attribution and license details.
+The dashboard vendors a small Lobe Icons SVG subset so it renders offline after installation. `serve` refreshes the local icon cache on startup by default; use `--no-refresh-icons` to skip the network refresh and use cached icons only. See `THIRD_PARTY_NOTICES.md` for attribution and license details.
 
 ## Development
 

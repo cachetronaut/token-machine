@@ -5,6 +5,7 @@ from typing import Any
 import token_machine.cli as cli
 from typer.testing import CliRunner
 
+from token_machine.dashboard.icon_vendor import IconRefreshResult
 from token_machine.cli import app
 from token_machine.storage.repository import AnalyticsRepository
 
@@ -62,6 +63,8 @@ def test_serve_help_exposes_initial_ingest_toggle() -> None:
     assert result.exit_code == 0
     assert "--ingest" in result.output
     assert "--no-ingest" in result.output
+    assert "--refresh-icons" in result.output
+    assert "--no-refresh-icons" in result.output
 
 
 def test_serve_runs_initial_ingest_before_starting_server(
@@ -87,11 +90,22 @@ def test_serve_runs_initial_ingest_before_starting_server(
     def fake_run(*args: object, **kwargs: object) -> None:
         calls.append((args, kwargs))
 
+    def fake_refresh_icon_cache(path: Path) -> IconRefreshResult:
+        return IconRefreshResult(
+            package="@lobehub/icons-static-svg",
+            version="1.0.0",
+            icon_count=1,
+            icons_dir=path / "cache" / "icons",
+            icons_json=path / "cache" / "icons.json",
+        )
+
     monkeypatch.setattr(cli, "DEFAULT_WATCH_PATHS", (log_dir,))
+    monkeypatch.setattr(cli, "refresh_icon_cache", fake_refresh_icon_cache)
     monkeypatch.setattr(cli.uvicorn, "run", fake_run)
 
     result = CliRunner().invoke(app, ["serve", "--store", str(store)])
 
     assert result.exit_code == 0
     assert calls
+    assert "Refreshed 1 dashboard icon(s)" in result.output
     assert len(AnalyticsRepository(store).load_events()) == 1

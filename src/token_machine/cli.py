@@ -12,6 +12,7 @@ import uvicorn
 
 from token_machine.config import DEFAULT_STORE, DEFAULT_WATCH_PATHS
 from token_machine.dashboard.app import create_app
+from token_machine.dashboard.icon_vendor import refresh_icon_cache
 from token_machine.ingest.pipeline import ingest as ingest_paths
 from token_machine.metrics.profiles import dashboard_data
 from token_machine.models import IngestStatus
@@ -89,8 +90,24 @@ def serve(
     ] = True,
     watch: Annotated[bool, typer.Option("--watch")] = False,
     watch_interval: Annotated[int, typer.Option("--watch-interval")] = 30,
+    refresh_icons: Annotated[
+        bool,
+        typer.Option(
+            "--refresh-icons/--no-refresh-icons",
+            help="Refresh dashboard icons from the vendored icon source before serving.",
+        ),
+    ] = True,
 ) -> None:
     """Serve the browser dashboard."""
+    if refresh_icons:
+        try:
+            result = refresh_icon_cache(store)
+            typer.echo(
+                f"Refreshed {result.icon_count} dashboard icon(s) "
+                f"from {result.package}@{result.version}."
+            )
+        except Exception as exc:  # noqa: BLE001 - keep serving with cached icons.
+            typer.echo(f"Icon refresh failed; using cached icons if present: {exc}")
     if ingest:
         results = ingest_paths(list(DEFAULT_WATCH_PATHS), store)
         ok = sum(result.status == IngestStatus.OK for result in results)
