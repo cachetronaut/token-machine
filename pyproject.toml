@@ -4,7 +4,8 @@ version = "0.1.0"
 description = "Local analytics and dashboard tooling for CLI coding agents."
 readme = "README.md"
 requires-python = ">=3.14"
-license = { file = "LICENSE" }
+license = "MIT"
+license-files = ["LICENSE", "THIRD_PARTY_NOTICES.md"]
 authors = [{ name = "Token Machine contributors" }]
 keywords = ["analytics", "cli", "coding-agents", "tokens", "dashboard"]
 classifiers = [
@@ -14,7 +15,12 @@ classifiers = [
     "Programming Language :: Python :: 3.14",
     "Topic :: Software Development",
 ]
-dependencies = ["fastapi>=0.136.1", "typer>=0.25.1", "uvicorn>=0.46.0"]
+dependencies = [
+    "fastapi>=0.136.1",
+    "jinja2>=3.1.6",
+    "typer>=0.25.1",
+    "uvicorn>=0.46.0",
+]
 
 [project.scripts]
 token-machine = "token_machine.cli:main"

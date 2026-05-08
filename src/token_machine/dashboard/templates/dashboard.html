@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>{{ dashboard.title }}</title>
+{% for href in dashboard.css_assets %}
+<link rel="stylesheet" href="{{ href }}" />
+{% endfor %}
+</head>
+<body>
+<main>
+  {% include "partials/header.html" %}
+  {% include "partials/metrics.html" %}
+  {% include "partials/charts.html" %}
+  {% include "partials/rankings.html" %}
+  {% include "partials/model_cards.html" %}
+  {% include "partials/sessions.html" %}
+</main>
+<div class="tooltip" id="tooltip"></div>
+<script type="module" src="{{ dashboard.js_entrypoint }}"></script>
+</body>
+</html>

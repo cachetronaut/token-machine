@@ -1,0 +1,97 @@
+.model-dist {
+  display: grid;
+  grid-template-columns: 1fr;
+  align-items: center;
+  justify-items: center;
+  gap: 14px;
+}
+
+.donut {
+  position: relative;
+  width: min(242px, 70vw);
+  height: min(242px, 70vw);
+  margin: 0 auto;
+  border-radius: 50%;
+  background: conic-gradient(var(--line) 0 100%);
+}
+
+.donut::after {
+  position: absolute;
+  inset: 38px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: var(--panel);
+  content: "";
+}
+
+.donut-total {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+  font-size: 12px;
+  text-align: center;
+}
+
+.donut-total strong {
+  display: block;
+  color: var(--text);
+  font-size: 28px;
+  line-height: 1;
+}
+
+.legend-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 8px 14px;
+  width: 100%;
+}
+
+.legend-item {
+  display: grid;
+  grid-template-columns: 10px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  color: #dce1e5;
+  font-size: 12px;
+}
+
+.legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.legend-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chart-hit { pointer-events: all; }
+
+.tooltip {
+  position: fixed;
+  z-index: 10;
+  max-width: 280px;
+  padding: 9px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #0c0f14;
+  box-shadow: 0 14px 40px rgba(0, 0, 0, .35);
+  color: var(--text);
+  font-size: 12px;
+  line-height: 1.35;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(12px, 12px);
+  transition: opacity .08s ease;
+}
+
+.tooltip strong {
+  display: block;
+  margin-bottom: 3px;
+  font-size: 13px;
+}

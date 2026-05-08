@@ -1,0 +1,16 @@
+# Third-party notices
+
+## Lobe Icons
+
+Token Machine vendors a small static SVG subset from Lobe Icons for offline dashboard rendering.
+
+- Source: https://github.com/lobehub/lobe-icons
+- Package: `@lobehub/icons-static-svg`
+- Version: `1.90.0`
+- License: MIT
+- Included icon slugs: `claude-color.svg`, `codex-color.svg`,
+  `gemini-color.svg`, `openai.svg`, and `qwen-color.svg`
+
+These files are served locally from `/assets/icons/{name}.svg`. Brand names and logos may be subject to their owners' trademark rights.
+
+The OpenAI SVG fill is set to white so it remains visible on the dashboard's dark model cards.

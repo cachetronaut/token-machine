@@ -5,8 +5,9 @@ from __future__ import annotations
 from pathlib import Path
 
 from fastapi import APIRouter
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, Response
 
+from token_machine.dashboard.assets import dashboard_asset_response
 from token_machine.dashboard.render import render_dashboard
 from token_machine.metrics.profiles import dashboard_data
 from token_machine.models import jsonable
@@ -25,5 +26,9 @@ def dashboard_router(store: Path) -> APIRouter:
     def summary() -> JSONResponse:
         data = dashboard_data(repository.load_events())
         return JSONResponse(jsonable(data))
+
+    @router.get("/assets/{kind}/{name}")
+    def asset(kind: str, name: str) -> Response:
+        return dashboard_asset_response(kind, name)
 
     return router
