@@ -33,10 +33,10 @@ def test_rollups_do_not_collide_across_sources(tmp_path: Path) -> None:
     repository.write_events(
         [
             _event(AgentSource.CODEX, "codex-event"),
-            _event(AgentSource.CLAUDE, "claude-event"),
+            _event(AgentSource.CLAUDE_CODE, "claude-event"),
         ],
         [],
     )
 
     assert repository.session_path(AgentSource.CODEX, "same-session").exists()
-    assert repository.session_path(AgentSource.CLAUDE, "same-session").exists()
+    assert repository.session_path(AgentSource.CLAUDE_CODE, "same-session").exists()

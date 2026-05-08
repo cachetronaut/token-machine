@@ -3,7 +3,7 @@ from pathlib import Path
 from fastapi.testclient import TestClient
 
 from token_machine.dashboard.app import create_app
-from token_machine.dashboard.icons import ICON_NAMES
+from token_machine.dashboard.icons import icon_filenames
 from token_machine.models import AgentSource, AnalyticsEvent, EventType, TokenUsage
 from token_machine.storage.repository import AnalyticsRepository
 
@@ -46,7 +46,18 @@ def test_fastapi_dashboard_routes_return_html_and_summary(tmp_path: Path) -> Non
     assert payload["model_profiles"][0]["model"] == "gpt-5.4"
 
 
+_STUB_SVG = '<svg xmlns="http://www.w3.org/2000/svg" height="1em" viewBox="0 0 24 24"><title>Icon</title></svg>'
+
+
+def _seed_icons(store: Path) -> None:
+    icons_dir = store / "cache" / "icons"
+    icons_dir.mkdir(parents=True, exist_ok=True)
+    for name in icon_filenames():
+        (icons_dir / name).write_text(_STUB_SVG, encoding="utf-8")
+
+
 def test_fastapi_dashboard_serves_packaged_assets(tmp_path: Path) -> None:
+    _seed_icons(tmp_path)
     client = TestClient(create_app(tmp_path))
 
     css_response = client.get("/assets/css/base.css")
@@ -64,9 +75,10 @@ def test_fastapi_dashboard_serves_packaged_assets(tmp_path: Path) -> None:
 
 
 def test_fastapi_dashboard_serves_lobe_icon_subset(tmp_path: Path) -> None:
+    _seed_icons(tmp_path)
     client = TestClient(create_app(tmp_path))
 
-    for icon_name in sorted(ICON_NAMES):
+    for icon_name in sorted(icon_filenames()):
         response = client.get(f"/assets/icons/{icon_name}")
 
         assert response.status_code == 200

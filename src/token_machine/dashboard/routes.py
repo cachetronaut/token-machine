@@ -27,8 +27,10 @@ def dashboard_router(store: Path) -> APIRouter:
         data = dashboard_data(repository.load_events())
         return JSONResponse(jsonable(data))
 
+    icons_dir = store / "cache" / "icons"
+
     @router.get("/assets/{kind}/{name}")
     def asset(kind: str, name: str) -> Response:
-        return dashboard_asset_response(kind, name)
+        return dashboard_asset_response(kind, name, icons_dir)
 
     return router

@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from token_machine.dashboard.icons import ICON_SOURCE_SLUGS, LOBE_ICONS_PACKAGE
+from token_machine.dashboard.icons import LOBE_ICONS_PACKAGE
 
 
 def test_public_package_has_no_private_product_names() -> None:
@@ -36,5 +36,3 @@ def test_third_party_notices_include_lobe_icons_attribution() -> None:
     assert "Lobe Icons" in text
     assert LOBE_ICONS_PACKAGE in text
     assert "MIT" in text
-    for source_slug in ICON_SOURCE_SLUGS.values():
-        assert source_slug in text

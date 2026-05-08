@@ -21,7 +21,7 @@ from token_machine.sources.base import (
 
 
 class ClaudeSource:
-    name = AgentSource.CLAUDE
+    name = AgentSource.CLAUDE_CODE
 
     def default_paths(self) -> tuple[Path, ...]:
         return (DEFAULT_WATCH_PATHS[1],)

@@ -1,8 +1,17 @@
 import { appColor, hideTooltip, modelColor, showTooltip } from "./charts.js";
-import { colorFor, compactNumber, escapeHtml, fmt, formatDuration, projectName, topEntries } from "./format.js";
+import {
+  colorFor,
+  compactNumber,
+  escapeHtml,
+  fmt,
+  formatDuration,
+  projectName,
+  topEntries,
+} from "./format.js";
 
 const descriptions = {
-  exec_command: "Runs terminal commands to inspect, test, or launch local work.",
+  exec_command:
+    "Runs terminal commands to inspect, test, or launch local work.",
   apply_patch: "Edits files in a controlled patch format.",
   write_stdin: "Sends input to an already-running terminal command.",
   update_plan: "Tracks the current work plan and progress.",
@@ -37,7 +46,9 @@ export function renderBars(id, values, includeDescriptions = false) {
     return;
   }
   const max = Math.max(...entries.map(([, count]) => count), 1);
-  root.innerHTML = entries.map(([name, count]) => `
+  root.innerHTML = entries
+    .map(
+      ([name, count]) => `
     <div class="bar-row" title="${escapeHtml(name)}">
       <div>
         <div class="bar-label">${escapeHtml(name)}</div>
@@ -46,37 +57,57 @@ export function renderBars(id, values, includeDescriptions = false) {
       <div class="bar-track"><div class="bar-fill" style="width:${Math.max(3, (count / max) * 100)}%"></div></div>
       <div>${fmt.format(count)}</div>
     </div>
-  `).join("");
+  `,
+    )
+    .join("");
 }
 
 export function renderAppLegend(sources) {
   const root = document.getElementById("app-legend");
   const entries = Object.entries(sources || {}).sort((a, b) => b[1] - a[1]);
-  root.innerHTML = entries.map(([source, count]) => {
-    const color = appColor(source);
-    const appLabel = appDisplayName(source);
-    return `
+  root.innerHTML = entries
+    .map(([source, count]) => {
+      const color = appColor(source);
+      const appLabel = appDisplayName(source);
+      return `
       <span class="app-pill icon-only" style="--app-color:${color}" title="${escapeHtml(appLabel)}: ${fmt.format(count)} events">
         ${renderAppIcon(source)}
       </span>
     `;
-  }).join("");
+    })
+    .join("");
 }
 
 export function renderModelProfiles(rows) {
   const root = document.getElementById("model-profiles");
-  const visibleRows = rows.filter((row) => row.model !== "unknown" && (row.model_calls || row.tool_calls || row.tokens.total_tokens));
+  const visibleRows = rows.filter(
+    (row) =>
+      row.model !== "unknown" &&
+      (row.model_calls || row.tool_calls || row.tokens.total_tokens),
+  );
   if (!visibleRows.length) {
-    root.innerHTML = '<div class="card"><div class="eyebrow">No model data yet</div></div>';
+    root.innerHTML =
+      '<div class="card"><div class="eyebrow">No model data yet</div></div>';
     return;
   }
-  root.innerHTML = visibleRows.slice(0, 12).map((row, index) => {
-    const clis = topEntries(row.clis, 3).map(([name, count]) => `${name} ${fmt.format(count)}`).join(" - ");
-    const projects = (row.projects || []).map((project) => `${projectName(project.path)} ${project.count}`).join(" - ");
-    const color = modelCardColor(row);
-    const effort = row.reasoning_level && row.reasoning_level !== "not in log" ? row.reasoning_level : "";
-    const firstEdit = formatDuration(rowStat(row, "median_time_to_first_edit_seconds"));
-    return `
+  root.innerHTML = visibleRows
+    .slice(0, 12)
+    .map((row, index) => {
+      const clis = topEntries(row.clis, 3)
+        .map(([name, count]) => `${name} ${fmt.format(count)}`)
+        .join(" - ");
+      const projects = (row.projects || [])
+        .map((project) => `${projectName(project.path)} ${project.count}`)
+        .join(" - ");
+      const color = modelCardColor(row);
+      const effort =
+        row.reasoning_level && row.reasoning_level !== "not in log"
+          ? row.reasoning_level
+          : "";
+      const firstEdit = formatDuration(
+        rowStat(row, "median_time_to_first_edit_seconds"),
+      );
+      return `
       <div class="card model-card" style="--card-color:${color}">
         <div class="model-inner">
           <div class="card-face">
@@ -126,12 +157,17 @@ export function renderModelProfiles(rows) {
         </div>
       </div>
     `;
-  }).join("");
+    })
+    .join("");
 }
 
 function descriptionFor(name) {
   const normalized = String(name || "").replace(".", "_");
-  return descriptions[name] || descriptions[normalized] || "Tracked from local session logs.";
+  return (
+    descriptions[name] ||
+    descriptions[normalized] ||
+    "Tracked from local session logs."
+  );
 }
 
 function appDisplayName(source) {
@@ -145,7 +181,7 @@ function appDisplayName(source) {
 function sourceIconName(source) {
   const key = String(source || "").toLowerCase();
   if (key.includes("codex")) return "codex.svg";
-  if (key.includes("claude")) return "claude.svg";
+  if (key.includes("claude")) return "claudecode.svg";
   if (key.includes("gemini")) return "gemini.svg";
   if (key.includes("openai")) return "openai.svg";
   return "";
@@ -171,10 +207,9 @@ function renderAppIcon(source) {
 }
 
 function renderProviderLogo(row) {
-  const initials = escapeHtml(modelInitials(row));
-  const icon = sourceIconName(row.source) || modelIconName(row);
-  if (!icon) return initials;
-  return `<img src="${iconUrl(icon)}" alt="" loading="lazy" decoding="async" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><span hidden>${initials}</span>`;
+  const icon = sourceIconName(row.source);
+  if (!icon) return "";
+  return `<img src="${iconUrl(icon)}" alt="" loading="lazy" decoding="async" onerror="this.hidden=true">`;
 }
 
 function renderModelHero(row) {
@@ -205,9 +240,12 @@ function levelIcon(level) {
   const key = String(level || "unclassified").toLowerCase();
   const icons = {
     fast: '<path d="M11.251.068a.5.5 0 0 1 .227.58L9.677 6.5H13a.5.5 0 0 1 .364.843l-8 8.5a.5.5 0 0 1-.842-.49L6.323 9.5H3a.5.5 0 0 1-.364-.843l8-8.5a.5.5 0 0 1 .615-.09z"/>',
-    frontier: '<path d="M7.657 6.247c.11-.33.576-.33.686 0l.645 1.937a2.89 2.89 0 0 0 1.829 1.828l1.936.645c.33.11.33.576 0 .686l-1.937.645a2.89 2.89 0 0 0-1.828 1.829l-.645 1.936a.361.361 0 0 1-.686 0l-.645-1.937a2.89 2.89 0 0 0-1.828-1.828l-1.937-.645a.361.361 0 0 1 0-.686l1.937-.645a2.89 2.89 0 0 0 1.828-1.828zM3.794 1.148a.217.217 0 0 1 .412 0l.387 1.162c.173.518.579.924 1.097 1.097l1.162.387a.217.217 0 0 1 0 .412l-1.162.387A1.73 1.73 0 0 0 4.593 5.69l-.387 1.162a.217.217 0 0 1-.412 0L3.407 5.69A1.73 1.73 0 0 0 2.31 4.593l-1.162-.387a.217.217 0 0 1 0-.412l1.162-.387A1.73 1.73 0 0 0 3.407 2.31z"/>',
-    balanced: '<path d="M8 4a.5.5 0 0 1 .5.5V6a.5.5 0 0 1-1 0V4.5A.5.5 0 0 1 8 4M3.732 5.732a.5.5 0 0 1 .707 0l.915.914a.5.5 0 1 1-.708.708l-.914-.915a.5.5 0 0 1 0-.707M2 10a.5.5 0 0 1 .5-.5h1.586a.5.5 0 0 1 0 1H2.5A.5.5 0 0 1 2 10m9.5 0a.5.5 0 0 1 .5-.5h1.5a.5.5 0 0 1 0 1H12a.5.5 0 0 1-.5-.5m.754-4.268a.5.5 0 0 1 0 .707l-.915.915a.5.5 0 0 1-.707-.708l.914-.914a.5.5 0 0 1 .708 0"/><path d="M6.664 10.89a.5.5 0 0 1-.11-.696l2.5-3.5a.5.5 0 0 1 .806.592l-2.5 3.5a.5.5 0 0 1-.696.104"/><path fill-rule="evenodd" d="M8 1a7 7 0 0 0-7 7c0 1.676.59 3.216 1.574 4.42.18.22.452.33.736.33h9.38c.284 0 .556-.11.736-.33A6.97 6.97 0 0 0 15 8a7 7 0 0 0-7-7m0 1a6 6 0 0 1 4.889 9.474l-.15.276H3.26l-.15-.276A6 6 0 0 1 8 2"/>',
-    unclassified: '<path d="M5.255 5.786a.237.237 0 0 0 .241.247h.825c.138 0 .248-.113.266-.25.09-.656.54-1.134 1.342-1.134.686 0 1.314.343 1.314 1.168 0 .635-.374.927-.965 1.371-.673.489-1.206 1.06-1.168 1.987l.003.217a.25.25 0 0 0 .25.246h.811a.25.25 0 0 0 .25-.25v-.105c0-.718.273-.927 1.01-1.486.609-.463 1.244-.977 1.244-2.056 0-1.511-1.276-2.241-2.673-2.241-1.267 0-2.655.59-2.75 2.29m1.557 5.763c0 .533.425.927 1.01.927.609 0 1.028-.394 1.028-.927 0-.552-.42-.94-1.029-.94-.584 0-1.009.388-1.009.94"/>',
+    frontier:
+      '<path d="M7.657 6.247c.11-.33.576-.33.686 0l.645 1.937a2.89 2.89 0 0 0 1.829 1.828l1.936.645c.33.11.33.576 0 .686l-1.937.645a2.89 2.89 0 0 0-1.828 1.829l-.645 1.936a.361.361 0 0 1-.686 0l-.645-1.937a2.89 2.89 0 0 0-1.828-1.828l-1.937-.645a.361.361 0 0 1 0-.686l1.937-.645a2.89 2.89 0 0 0 1.828-1.828zM3.794 1.148a.217.217 0 0 1 .412 0l.387 1.162c.173.518.579.924 1.097 1.097l1.162.387a.217.217 0 0 1 0 .412l-1.162.387A1.73 1.73 0 0 0 4.593 5.69l-.387 1.162a.217.217 0 0 1-.412 0L3.407 5.69A1.73 1.73 0 0 0 2.31 4.593l-1.162-.387a.217.217 0 0 1 0-.412l1.162-.387A1.73 1.73 0 0 0 3.407 2.31z"/>',
+    balanced:
+      '<path d="M8 4a.5.5 0 0 1 .5.5V6a.5.5 0 0 1-1 0V4.5A.5.5 0 0 1 8 4M3.732 5.732a.5.5 0 0 1 .707 0l.915.914a.5.5 0 1 1-.708.708l-.914-.915a.5.5 0 0 1 0-.707M2 10a.5.5 0 0 1 .5-.5h1.586a.5.5 0 0 1 0 1H2.5A.5.5 0 0 1 2 10m9.5 0a.5.5 0 0 1 .5-.5h1.5a.5.5 0 0 1 0 1H12a.5.5 0 0 1-.5-.5m.754-4.268a.5.5 0 0 1 0 .707l-.915.915a.5.5 0 0 1-.707-.708l.914-.914a.5.5 0 0 1 .708 0"/><path d="M6.664 10.89a.5.5 0 0 1-.11-.696l2.5-3.5a.5.5 0 0 1 .806.592l-2.5 3.5a.5.5 0 0 1-.696.104"/><path fill-rule="evenodd" d="M8 1a7 7 0 0 0-7 7c0 1.676.59 3.216 1.574 4.42.18.22.452.33.736.33h9.38c.284 0 .556-.11.736-.33A6.97 6.97 0 0 0 15 8a7 7 0 0 0-7-7m0 1a6 6 0 0 1 4.889 9.474l-.15.276H3.26l-.15-.276A6 6 0 0 1 8 2"/>',
+    unclassified:
+      '<path d="M5.255 5.786a.237.237 0 0 0 .241.247h.825c.138 0 .248-.113.266-.25.09-.656.54-1.134 1.342-1.134.686 0 1.314.343 1.314 1.168 0 .635-.374.927-.965 1.371-.673.489-1.206 1.06-1.168 1.987l.003.217a.25.25 0 0 0 .25.246h.811a.25.25 0 0 0 .25-.25v-.105c0-.718.273-.927 1.01-1.486.609-.463 1.244-.977 1.244-2.056 0-1.511-1.276-2.241-2.673-2.241-1.267 0-2.655.59-2.75 2.29m1.557 5.763c0 .533.425.927 1.01.927.609 0 1.028-.394 1.028-.927 0-.552-.42-.94-1.029-.94-.584 0-1.009.388-1.009.94"/>',
   };
   const path = icons[key] || icons.unclassified;
   const label = key.charAt(0).toUpperCase() + key.slice(1);
@@ -220,14 +258,19 @@ function rowStat(row, key) {
 
 function renderMix(mix) {
   const rows = (mix || []).slice(0, 5);
-  if (!rows.length) return '<div class="model-tools">No tool mix recorded</div>';
-  return `<div class="mix-row">${rows.map((item) => `
+  if (!rows.length)
+    return '<div class="model-tools">No tool mix recorded</div>';
+  return `<div class="mix-row">${rows
+    .map(
+      (item) => `
     <div class="mix-pill" title="${escapeHtml(item.category)}: ${fmt.format(item.count)} actions">
       <strong>${escapeHtml(mixIcon(item.category))}</strong>
       <span>${escapeHtml(mixLabel(item.category))}</span>
       <span>${fmt.format(item.percent || 0)}%</span>
     </div>
-  `).join("")}</div>`;
+  `,
+    )
+    .join("")}</div>`;
 }
 
 function renderBackStatMatrix(row) {
@@ -249,19 +292,47 @@ function renderToolMatrix(row) {
   return `
     <div class="tool-matrix">
       <div class="matrix-row matrix-head"><div class="matrix-cell">tool</div><div class="matrix-cell">count</div><div class="matrix-cell">share</div></div>
-      ${rows.map((item) => `
+      ${rows
+        .map(
+          (item) => `
         <div class="matrix-row"><div class="matrix-cell matrix-label">${escapeHtml(mixLabel(item.category))}</div><div class="matrix-cell matrix-value">${fmt.format(item.count || 0)}</div><div class="matrix-cell matrix-value">${fmt.format(item.percent || 0)}%</div></div>
-      `).join("")}
+      `,
+        )
+        .join("")}
     </div>
   `;
 }
 
 function mixLabel(category) {
-  const labels = { Read: "Read", Edit: "Edit", Search: "Search", Shell: "Shell", Test: "Test", Browser: "Web", Planning: "Plan", Git: "Git", Network: "Net", Delegation: "Agents", Other: "Other" };
+  const labels = {
+    Read: "Read",
+    Edit: "Edit",
+    Search: "Search",
+    Shell: "Shell",
+    Test: "Test",
+    Browser: "Web",
+    Planning: "Plan",
+    Git: "Git",
+    Network: "Net",
+    Delegation: "Agents",
+    Other: "Other",
+  };
   return labels[category] || category;
 }
 
 function mixIcon(category) {
-  const icons = { Read: "R", Edit: "E", Search: "S", Shell: ">_", Test: "T", Browser: "W", Planning: "P", Git: "G", Network: "N", Delegation: "A", Other: "?" };
+  const icons = {
+    Read: "R",
+    Edit: "E",
+    Search: "S",
+    Shell: ">_",
+    Test: "T",
+    Browser: "W",
+    Planning: "P",
+    Git: "G",
+    Network: "N",
+    Delegation: "A",
+    Other: "?",
+  };
   return icons[category] || "?";
 }

@@ -24,7 +24,7 @@ class RawRecord(TypedDict, total=False):
 
 class AgentSource(StrEnum):
     CODEX = "codex"
-    CLAUDE = "claude"
+    CLAUDE_CODE = "claudecode"
     GEMINI = "gemini"
     UNKNOWN = "unknown"
 
@@ -290,6 +290,19 @@ def jsonable(value: object) -> JsonValue:
     return str(value)
 
 
+_AGENT_SOURCE_ALIASES: dict[str, str] = {
+    "claude": AgentSource.CLAUDE_CODE.value,
+}
+
+
+def _parse_agent_source(raw: str) -> AgentSource:
+    normalized = _AGENT_SOURCE_ALIASES.get(raw, raw)
+    try:
+        return AgentSource(normalized)
+    except ValueError:
+        return AgentSource.UNKNOWN
+
+
 def event_from_mapping(data: Mapping[str, object]) -> AnalyticsEvent:
     token_data = data.get("token_usage")
     token_mapping = (
@@ -306,7 +319,7 @@ def event_from_mapping(data: Mapping[str, object]) -> AnalyticsEvent:
     return AnalyticsEvent(
         event_id=str(data.get("event_id", "")),
         event_type=EventType(str(data.get("event_type", EventType.MESSAGE.value))),
-        source=AgentSource(str(data.get("source", AgentSource.UNKNOWN.value))),
+        source=_parse_agent_source(str(data.get("source", AgentSource.UNKNOWN.value))),
         source_path=str(data.get("source_path", "")),
         session_id=str(data.get("session_id", "")),
         timestamp=str(data.get("timestamp", "")),

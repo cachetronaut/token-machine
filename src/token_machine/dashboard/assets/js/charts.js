@@ -16,7 +16,7 @@ const modelColors = {
 
 const appColors = {
   codex: "#0169cc",
-  claude: "#d97757",
+  claudecode: "#d97757",
   gemini: "#8ab4f8",
   openai: "#0169cc",
   unknown: "#b1ada1",
@@ -29,7 +29,7 @@ export function appColor(source) {
 export function modelColor(model) {
   const key = String(model || "").toLowerCase();
   if (modelColors[key]) return modelColors[key];
-  if (key.includes("claude")) return appColors.claude;
+  if (key.includes("claude")) return appColors.claudecode;
   if (key.includes("gemini")) return appColors.gemini;
   if (key.includes("gpt") || key.includes("openai")) return appColors.openai;
   return "#43c7b7";

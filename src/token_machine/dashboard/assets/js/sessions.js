@@ -63,7 +63,7 @@ export function renderSessions(sessions) {
 function appDisplayName(source) {
   const value = String(source || "unknown").toLowerCase();
   if (value === "codex") return "Codex CLI";
-  if (value === "claude") return "Claude Code";
+  if (value === "claudecode") return "Claude Code";
   if (value === "gemini") return "Gemini CLI";
   return value.charAt(0).toUpperCase() + value.slice(1);
 }
@@ -71,7 +71,7 @@ function appDisplayName(source) {
 function sourceIconName(source) {
   const key = String(source || "").toLowerCase();
   if (key.includes("codex")) return "codex.svg";
-  if (key.includes("claude")) return "claude.svg";
+  if (key.includes("claudecode")) return "claudecode.svg";
   if (key.includes("gemini")) return "gemini.svg";
   if (key.includes("openai")) return "openai.svg";
   return "";
