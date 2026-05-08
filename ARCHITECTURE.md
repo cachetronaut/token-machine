@@ -71,10 +71,10 @@ FastAPI serves the dashboard through focused routes:
 
 - `/` returns Jinja-rendered HTML from `dashboard/render.py`.
 - `/api/summary` returns serialized `DashboardData`.
-- `/assets/css/{name}.css`, `/assets/js/{name}.js`, and
+- `/assets/css/{name}.css`, `/assets/js/{name}.js`, `/assets/img/{name}.png`, and
   `/assets/icons/{name}.svg` return packaged dashboard assets.
 
-Dashboard HTML lives in Jinja templates under `dashboard/templates/`. CSS and browser-native JavaScript modules live under `dashboard/assets/`. There is no frontend build system in v1.
+Dashboard HTML lives in Jinja templates under `dashboard/templates/`. CSS, browser-native JavaScript modules, and images live under `dashboard/assets/`. There is no frontend build system in v1.
 
 Dashboard icons are a small vendored Lobe Icons SVG subset served through the same local asset route. Runtime dashboard rendering must not depend on CDN, network, npm, or Node tooling.
 
