@@ -12,12 +12,14 @@ _ASSET_SUFFIXES = {
     "css": ".css",
     "js": ".js",
     "icons": ".svg",
+    "img": ".png",
 }
 
 _MEDIA_TYPES = {
     "css": "text/css; charset=utf-8",
     "js": "text/javascript; charset=utf-8",
     "icons": "image/svg+xml; charset=utf-8",
+    "img": "image/png",
 }
 
 
@@ -42,4 +44,8 @@ def dashboard_asset_response(
     asset = resources.files("token_machine.dashboard").joinpath("assets", kind, name)
     if not asset.is_file():
         raise HTTPException(status_code=404)
+
+    if kind == "img":
+        return Response(asset.read_bytes(), media_type=_MEDIA_TYPES[kind])
+
     return Response(asset.read_text(encoding="utf-8"), media_type=_MEDIA_TYPES[kind])

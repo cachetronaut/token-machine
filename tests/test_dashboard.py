@@ -73,6 +73,11 @@ def test_fastapi_dashboard_serves_packaged_assets(tmp_path: Path) -> None:
     assert icon_response.headers["content-type"].startswith("image/svg+xml")
     assert missing_response.status_code == 404
 
+    # Test image asset serving (using placeholder created in setup or here)
+    img_response = client.get("/assets/img/logo.png")
+    assert img_response.status_code == 200
+    assert img_response.headers["content-type"] == "image/png"
+
 
 def test_fastapi_dashboard_serves_lobe_icon_subset(tmp_path: Path) -> None:
     _seed_icons(tmp_path)

@@ -1,7 +1,16 @@
 <header>
-  <div>
-    <h1>{{ dashboard.title }}</h1>
-    <div class="sub">{{ dashboard.subtitle }}</div>
-  </div>
-  <div class="status"><span class="pulse"></span><span id="status">Connecting</span></div>
+    <div class="brand">
+        <img
+            src="{{ dashboard.logo_path }}"
+            alt="Token Machine Logo"
+            class="logo"
+        />
+        <div>
+            <h1>{{ dashboard.title }}</h1>
+            <div class="sub">{{ dashboard.subtitle }}</div>
+        </div>
+    </div>
+    <div class="status">
+        <span class="pulse"></span><span id="status">Connecting</span>
+    </div>
 </header>

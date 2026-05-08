@@ -6,7 +6,6 @@ from jinja2 import Environment, PackageLoader, select_autoescape
 
 from token_machine.dashboard.view_models import DashboardViewModel
 
-
 DASHBOARD_VIEW_MODEL = DashboardViewModel(
     title="Token Machine",
     subtitle="Local CLI-agent usage across Codex, Claude, Gemini, and future agents.",
@@ -18,6 +17,7 @@ DASHBOARD_VIEW_MODEL = DashboardViewModel(
         "/assets/css/timeline.css",
     ),
     js_entrypoint="/assets/js/dashboard.js",
+    logo_path="/assets/img/logo.png",
 )
 
 _ENVIRONMENT = Environment(

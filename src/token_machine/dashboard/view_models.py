@@ -17,3 +17,4 @@ class DashboardViewModel:
     subtitle: str
     css_assets: tuple[str, ...]
     js_entrypoint: str
+    logo_path: str
