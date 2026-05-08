@@ -1,0 +1,123 @@
+# OS files
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
+# Editor / IDE files
+.vscode/
+.idea/
+*.iml
+*.swp
+*.swo
+.project
+.classpath
+.settings/
+.history/
+
+# Logs
+logs/
+*.log
+
+# Environment variables / secrets
+.env
+.env.*
+!.env.example
+!.env.sample
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+secrets/
+credentials/
+*.credentials
+
+# Dependencies
+vendor/
+bower_components/
+
+# Build outputs
+dist/
+build/
+out/
+target/
+bin/
+obj/
+release/
+debug/
+coverage/
+.nyc_output/
+.tmp/
+temp/
+tmp/
+
+# Cache
+.cache/
+
+# Package manager files
+.pnpm-store/
+.yarn/cache/
+.yarn/unplugged/
+.yarn/build-state.yml
+.yarn/install-state.gz
+
+# Testing
+coverage/
+test-results/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+env/
+ENV/
+pip-wheel-metadata/
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# Docker
+.docker/
+docker-compose.override.yml
+
+# Databases
+*.sqlite
+*.sqlite3
+*.db
+
+# Generated files
+generated/
+*.generated.*
+*.min.js
+*.min.css
+
+# Local config
+*.local
+config.local.*
+settings.local.*
+
+# Temporary backup files
+*.bak
+*.backup
+*.old
+*.orig
+*.rej
+
+# Misc
+.DS_Store?
+*.seed
+*.pid
+*.pid.lock

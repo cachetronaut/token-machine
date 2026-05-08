@@ -1,0 +1,39 @@
+[project]
+name = "token-machine"
+version = "0.1.0"
+description = "Local analytics and dashboard tooling for CLI coding agents."
+readme = "README.md"
+requires-python = ">=3.14"
+license = { file = "LICENSE" }
+authors = [{ name = "Token Machine contributors" }]
+keywords = ["analytics", "cli", "coding-agents", "tokens", "dashboard"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Software Development",
+]
+dependencies = ["fastapi>=0.136.1", "typer>=0.25.1", "uvicorn>=0.46.0"]
+
+[project.scripts]
+token-machine = "token_machine.cli:main"
+
+[build-system]
+requires = ["uv_build>=0.11.7,<0.12.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "httpx>=0.28.1",
+    "pytest>=9.0.3",
+    "ruff>=0.15.12",
+    "ty>=0.0.34",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+src = ["src", "tests"]
+line-length = 88
