@@ -6,11 +6,21 @@ The package is built for public reuse. The core parser, storage, and metrics mod
 
 ## Install
 
+Token Machine is not published to PyPI yet. Install it from a local clone to
+expose the `token-machine` command:
+
 ```bash
-pip install token-machine
+git clone <repo-url>
+cd token-machine
+uv tool install --editable .
+token-machine --help
 ```
 
-For local development:
+`uv tool install --editable .` installs the package's console script from the
+current checkout, so changes you make in the clone are reflected when you run
+`token-machine`.
+
+For local development without installing the command:
 
 ```bash
 uv sync
@@ -20,11 +30,11 @@ uv run token-machine --help
 ## Commands
 
 ```bash
-uv run token-machine paths
-uv run token-machine ingest ~/.codex ~/.claude ~/.gemini
-uv run token-machine report
-uv run token-machine serve --watch
-uv run token-machine watch
+token-machine paths
+token-machine ingest ~/.codex ~/.claude ~/.gemini
+token-machine report
+token-machine serve --watch
+token-machine watch
 ```
 
 The default store is platform-specific and local to the current user. Use `--store` to write somewhere else. `serve` performs one initial ingest from the default agent paths before starting the dashboard. Add `--no-ingest` when you want to inspect only the data already in the store.
