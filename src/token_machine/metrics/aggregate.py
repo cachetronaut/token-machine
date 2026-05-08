@@ -4,11 +4,17 @@ from __future__ import annotations
 
 from collections import Counter, defaultdict
 
+from token_machine.metrics.tools import (
+    ACTION_EVENT_TYPES,
+    build_description_map,
+    event_tool_label,
+    normalize_label,
+)
 from token_machine.models import (
     AgentSource,
     AnalyticsEvent,
-    DashboardSummary,
     DailySummary,
+    DashboardSummary,
     EventType,
     SessionRollup,
     TokenUsage,
@@ -77,16 +83,16 @@ def rollup_events(events: list[AnalyticsEvent], source_path: str = "") -> Sessio
         ),
         tools=dict(
             Counter(
-                event.tool_name
+                normalize_label(event.tool_name)
                 for event in events
                 if event.tool_name and event.event_type == EventType.TOOL_CALL
             )
         ),
         clis=dict(
             Counter(
-                event.cli_name
+                normalize_label(event.cli_name)
                 for event in events
-                if event.cli_name and event.event_type == EventType.CLI_COMMAND
+                if event.cli_name and event.event_type in ACTION_EVENT_TYPES
             )
         ),
         tokens=tokens,
@@ -104,6 +110,7 @@ def group_sessions(
 
 def dashboard_summary(events: list[AnalyticsEvent]) -> DashboardSummary:
     tokens = rollup_events(events).tokens if events else TokenUsage()
+    summary_rollup = rollup_events(events)
     return DashboardSummary(
         generated_at=utc_now(),
         event_count=len(events),
@@ -116,22 +123,11 @@ def dashboard_summary(events: list[AnalyticsEvent]) -> DashboardSummary:
                 if event.model and event.event_type == EventType.MODEL_CALL
             )
         ),
-        tools=dict(
-            Counter(
-                event.tool_name
-                for event in events
-                if event.tool_name and event.event_type == EventType.TOOL_CALL
-            )
-        ),
-        clis=dict(
-            Counter(
-                event.cli_name
-                for event in events
-                if event.cli_name and event.event_type == EventType.CLI_COMMAND
-            )
-        ),
+        tools=summary_rollup.tools,
+        clis=summary_rollup.clis,
         event_types=dict(Counter(event.event_type.value for event in events)),
         tokens=tokens,
+        descriptions=build_description_map(events),
     )
 
 

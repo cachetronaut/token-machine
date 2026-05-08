@@ -9,36 +9,12 @@ import {
   topEntries,
 } from "./format.js";
 
-const descriptions = {
-  exec_command:
-    "Runs terminal commands to inspect, test, or launch local work.",
-  apply_patch: "Edits files in a controlled patch format.",
-  write_stdin: "Sends input to an already-running terminal command.",
-  update_plan: "Tracks the current work plan and progress.",
-  view_image: "Opens a local image for visual inspection.",
-  Bash: "Runs shell commands from Claude Code.",
-  Read: "Reads a file from disk.",
-  Edit: "Updates an existing file.",
-  Write: "Creates or replaces a file.",
-  Grep: "Searches file contents for matching text.",
-  Glob: "Finds files by filename pattern.",
-  WebFetch: "Fetches a web page for reference.",
-  WebSearch: "Searches the web.",
-  TodoWrite: "Maintains a task checklist.",
-  TaskCreate: "Starts a delegated agent task.",
-  TaskUpdate: "Updates a delegated task.",
-  run_shell_command: "Runs shell commands from Gemini CLI.",
-  list_directory: "Lists project folders through Gemini CLI.",
-  read_file: "Reads a file through Gemini CLI.",
-  grep_search: "Searches files through Gemini CLI.",
-  git: "Inspects or changes version control state.",
-  curl: "Calls local or remote HTTP endpoints.",
-  kill: "Stops a running process.",
-  ps: "Lists running processes.",
-  rg: "Fast text and file search.",
-};
-
-export function renderBars(id, values, includeDescriptions = false) {
+export function renderBars(
+  id,
+  values,
+  includeDescriptions = false,
+  descriptions = {},
+) {
   const root = document.getElementById(id);
   const entries = topEntries(values);
   if (!entries.length) {
@@ -52,7 +28,7 @@ export function renderBars(id, values, includeDescriptions = false) {
     <div class="bar-row" title="${escapeHtml(name)}">
       <div>
         <div class="bar-label">${escapeHtml(name)}</div>
-        ${includeDescriptions ? `<div class="bar-desc">${escapeHtml(descriptionFor(name))}</div>` : ""}
+        ${includeDescriptions && descriptions[name] ? `<div class="bar-desc">${escapeHtml(descriptions[name])}</div>` : ""}
       </div>
       <div class="bar-track"><div class="bar-fill" style="width:${Math.max(3, (count / max) * 100)}%"></div></div>
       <div>${fmt.format(count)}</div>
@@ -140,7 +116,7 @@ export function renderModelProfiles(rows) {
               </div>
               <div class="mini-stats">
                 <div class="mini-stat"><strong>${escapeHtml(row.workflow_role || "Activity")}</strong><span>inferred role</span></div>
-                <div class="mini-stat"><strong>${escapeHtml(firstEdit)}</strong><span>median first edit</span></div>
+                <div class="mini-stat"><strong>${escapeHtml(firstEdit)}</strong><span>median first action</span></div>
               </div>
               ${renderBackStatMatrix(row)}
               ${renderToolMatrix(row)}
@@ -159,15 +135,6 @@ export function renderModelProfiles(rows) {
     `;
     })
     .join("");
-}
-
-function descriptionFor(name) {
-  const normalized = String(name || "").replace(".", "_");
-  return (
-    descriptions[name] ||
-    descriptions[normalized] ||
-    "Tracked from local session logs."
-  );
 }
 
 function appDisplayName(source) {
@@ -263,9 +230,9 @@ function renderMix(mix) {
   return `<div class="mix-row">${rows
     .map(
       (item) => `
-    <div class="mix-pill" title="${escapeHtml(item.category)}: ${fmt.format(item.count)} actions">
+    <div class="mix-pill" title="${escapeHtml(item.category)}: ${fmt.format(item.count)} actions&#10;${escapeHtml(item.description || "")}">
       <strong>${escapeHtml(mixIcon(item.category))}</strong>
-      <span>${escapeHtml(mixLabel(item.category))}</span>
+      <span>${escapeHtml(item.category)}</span>
       <span>${fmt.format(item.percent || 0)}%</span>
     </div>
   `,
@@ -295,7 +262,7 @@ function renderToolMatrix(row) {
       ${rows
         .map(
           (item) => `
-        <div class="matrix-row"><div class="matrix-cell matrix-label">${escapeHtml(mixLabel(item.category))}</div><div class="matrix-cell matrix-value">${fmt.format(item.count || 0)}</div><div class="matrix-cell matrix-value">${fmt.format(item.percent || 0)}%</div></div>
+        <div class="matrix-row" title="${escapeHtml(item.description || "")}"><div class="matrix-cell matrix-label">${escapeHtml(item.category)}</div><div class="matrix-cell matrix-value">${fmt.format(item.count || 0)}</div><div class="matrix-cell matrix-value">${fmt.format(item.percent || 0)}%</div></div>
       `,
         )
         .join("")}
@@ -303,36 +270,9 @@ function renderToolMatrix(row) {
   `;
 }
 
-function mixLabel(category) {
-  const labels = {
-    Read: "Read",
-    Edit: "Edit",
-    Search: "Search",
-    Shell: "Shell",
-    Test: "Test",
-    Browser: "Web",
-    Planning: "Plan",
-    Git: "Git",
-    Network: "Net",
-    Delegation: "Agents",
-    Other: "Other",
-  };
-  return labels[category] || category;
-}
-
 function mixIcon(category) {
-  const icons = {
-    Read: "R",
-    Edit: "E",
-    Search: "S",
-    Shell: ">_",
-    Test: "T",
-    Browser: "W",
-    Planning: "P",
-    Git: "G",
-    Network: "N",
-    Delegation: "A",
-    Other: "?",
-  };
-  return icons[category] || "?";
+  const value = String(category || "?").trim();
+  if (!value) return "?";
+  if (value.startsWith("/") || value.includes("sh")) return ">_";
+  return value.slice(0, 1).toUpperCase();
 }

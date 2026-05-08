@@ -152,6 +152,7 @@ class AnalyticsEvent:
     project_path: str = ""
     model: str = ""
     tool_name: str = ""
+    tool_description: str = ""
     cli_name: str = ""
     command: str = ""
     token_usage: TokenUsage = field(default_factory=TokenUsage)
@@ -198,6 +199,7 @@ class DashboardSummary:
     clis: dict[str, int]
     event_types: dict[str, int]
     tokens: TokenUsage
+    descriptions: dict[str, str] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -208,9 +210,10 @@ class DailySummary:
 
 @dataclass(frozen=True)
 class ToolMixItem:
-    category: ToolCategory
+    category: str
     count: int
     percent: int
+    description: str = ""
 
 
 @dataclass(frozen=True)
@@ -326,6 +329,7 @@ def event_from_mapping(data: Mapping[str, object]) -> AnalyticsEvent:
         project_path=str(data.get("project_path", "")),
         model=str(data.get("model", "")),
         tool_name=str(data.get("tool_name", "")),
+        tool_description=str(data.get("tool_description", "")),
         cli_name=str(data.get("cli_name", "")),
         command=str(data.get("command", "")),
         token_usage=token_usage,

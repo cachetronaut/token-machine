@@ -126,7 +126,9 @@ class ClaudeSource:
                             project_path=project_path,
                             model=model,
                             tool_name=string_value(tool, "name"),
-                            command=string_value(tool_input, "cmd"),
+                            tool_description=string_value(tool_input, "description"),
+                            command=string_value(tool_input, "cmd")
+                            or string_value(tool_input, "command"),
                             event_metadata=metadata(tool_id=tool.get("id", "")),
                         )
                     )

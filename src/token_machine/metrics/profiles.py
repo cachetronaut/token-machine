@@ -11,9 +11,8 @@ from token_machine.metrics.aggregate import (
     session_duration_seconds,
 )
 from token_machine.metrics.tools import (
-    event_tool_label,
-    tool_category,
-    tool_category_counts,
+    ACTION_EVENT_TYPES,
+    observed_tool_counts,
     tool_mix,
 )
 from token_machine.models import (
@@ -24,7 +23,6 @@ from token_machine.models import (
     ModelFamily,
     ModelProfile,
     SessionProfile,
-    ToolCategory,
 )
 from token_machine.utils.time import seconds_between, utc_now
 
@@ -53,11 +51,9 @@ def session_profile(events: list[AnalyticsEvent]) -> SessionProfile:
         rollup=rollup_events(events),
         duration_seconds=session_duration_seconds(events),
         time_to_first_tool_seconds=time_to_first(
-            events, {EventType.TOOL_CALL, EventType.CLI_COMMAND}
+            events, ACTION_EVENT_TYPES
         ),
-        time_to_first_edit_seconds=time_to_first(
-            events, {EventType.TOOL_CALL, EventType.CLI_COMMAND}, {ToolCategory.EDIT}
-        ),
+        time_to_first_edit_seconds=time_to_first(events, ACTION_EVENT_TYPES),
         tool_mix=tool_mix(events),
         workflow_role=dominant_workflow_role(events),
         scouting_report=scouting_report(events),
@@ -67,7 +63,6 @@ def session_profile(events: list[AnalyticsEvent]) -> SessionProfile:
 def time_to_first(
     events: list[AnalyticsEvent],
     event_types: set[EventType],
-    categories: set[ToolCategory] | None = None,
 ) -> int:
     timestamps = sorted(event.timestamp for event in events if event.timestamp)
     if not timestamps:
@@ -76,54 +71,36 @@ def time_to_first(
     for event in sorted(events, key=lambda item: item.timestamp or ""):
         if event.event_type not in event_types or not event.timestamp:
             continue
-        if categories:
-            category = tool_category(event_tool_label(event), event.command)
-            if category not in categories:
-                continue
         return seconds_between(started_at, event.timestamp)
     return -1
 
 
 def dominant_workflow_role(events: list[AnalyticsEvent]) -> str:
-    counts = tool_category_counts(events)
-    total_actions = sum(counts.values())
-    if not total_actions:
+    actions = [event for event in events if event.event_type in ACTION_EVENT_TYPES]
+    if not actions:
         return "Conversation Analyst"
-    edit_count = counts[ToolCategory.EDIT]
-    search_count = counts[ToolCategory.SEARCH]
-    read_count = counts[ToolCategory.READ]
-    shell_count = counts[ToolCategory.SHELL]
-    test_count = counts[ToolCategory.TEST]
-    browser_count = counts[ToolCategory.BROWSER]
-    planning_count = counts[ToolCategory.PLANNING]
-    if test_count >= max(2, edit_count) and test_count >= search_count:
-        return "Verification Runner"
-    if edit_count >= max(2, search_count) and edit_count >= read_count:
-        return "Patch Builder"
-    if search_count + read_count >= max(3, edit_count * 2):
-        return "Repo Navigator"
-    if browser_count >= max(2, edit_count + test_count):
-        return "Research Scout"
-    if planning_count >= max(2, edit_count + shell_count):
-        return "Planning Lead"
-    if shell_count >= max(3, edit_count + search_count):
-        return "Shell Operator"
-    return "Repo Navigator"
+    cli_count = sum(event.event_type == EventType.CLI_COMMAND for event in actions)
+    tool_count = sum(event.event_type == EventType.TOOL_CALL for event in actions)
+    if cli_count >= max(2, tool_count * 2):
+        return "Command-heavy Workflow"
+    if tool_count >= max(2, cli_count * 2):
+        return "Tool-heavy Workflow"
+    return "Mixed Workflow"
 
 
 def scouting_report(events: list[AnalyticsEvent]) -> str:
     role = dominant_workflow_role(events)
-    counts = tool_category_counts(events)
-    top_categories = [category.value.lower() for category, _ in counts.most_common(2)]
+    counts = observed_tool_counts(events)
+    top_actions = [label for label, _ in counts.most_common(3)]
     rollup = rollup_events(events)
-    if not top_categories:
+    if not top_actions:
         return f"{role} profile based on message and token activity."
     scale = "focused"
     if rollup.tokens.total_tokens > 50_000_000:
         scale = "high-context"
     elif rollup.tokens.total_tokens > 5_000_000:
         scale = "substantial-context"
-    return f"{scale} {role.lower()} with {', '.join(top_categories)}-heavy activity."
+    return f"{scale} {role.lower()} with observed actions: {', '.join(top_actions)}."
 
 
 def model_profiles(events: list[AnalyticsEvent], limit: int = 12) -> list[ModelProfile]:
@@ -158,9 +135,7 @@ def model_profiles(events: list[AnalyticsEvent], limit: int = 12) -> list[ModelP
             for items in sessions.values()
         ]
         first_edit_times = [
-            time_to_first(
-                items, {EventType.TOOL_CALL, EventType.CLI_COMMAND}, {ToolCategory.EDIT}
-            )
+            time_to_first(items, ACTION_EVENT_TYPES)
             for items in sessions.values()
         ]
         rows.append(

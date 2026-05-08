@@ -1,126 +1,105 @@
-"""Tool and command categorization."""
+"""Observed tool and command metrics."""
 
 from __future__ import annotations
 
+import re
 from collections import Counter
 
-from token_machine.models import AnalyticsEvent, EventType, ToolCategory, ToolMixItem
-from token_machine.sources.base import cli_from_command
+from token_machine.models import AnalyticsEvent, EventType, ToolMixItem
 
-EDIT_TOOLS = {"Edit", "Write", "apply_patch"}
-SEARCH_TOOLS = {"Grep", "Glob", "rg", "grep_search"}
-READ_TOOLS = {
-    "Read",
-    "view_image",
-    "cat",
-    "sed",
-    "nl",
-    "ls",
-    "find",
-    "read_file",
-    "list_directory",
-}
-SHELL_TOOLS = {"Bash", "exec_command", "write_stdin", "exec", "run_shell_command"}
-PLANNING_TOOLS = {"update_plan", "TodoWrite", "update_topic"}
-DELEGATION_TOOLS = {
-    "Task",
-    "TaskCreate",
-    "TaskUpdate",
-    "spawn_agent",
-    "send_input",
-    "wait_agent",
-}
-BROWSER_TOOLS = {
-    "WebFetch",
-    "WebSearch",
-    "web",
-    "browser",
-    "screenshot",
-    "click",
-    "open",
-}
-NETWORK_CLIS = {"curl", "wget", "gh"}
-TEST_CLIS = {
-    "pytest",
-    "cargo",
-    "pnpm",
-    "npm",
-    "uv",
-    "ruff",
-    "ty",
-    "playwright",
-    "vitest",
-}
-GIT_CLIS = {"git", "gh"}
+ACTION_EVENT_TYPES = {EventType.TOOL_CALL, EventType.CLI_COMMAND}
+
+
+def normalize_label(name: str) -> str:
+    """Convert snake_case, camelCase, or PascalCase into Title Case."""
+    if not name:
+        return ""
+    # Add space before capitals (camel/Pascal)
+    s1 = re.sub("(.)([A-Z][a-z]+)", r"\1 \2", name)
+    # Add space before capital sequences
+    s2 = re.sub("([a-z0-9])([A-Z])", r"\1 \2", s1)
+    # Replace underscores and hyphens with spaces
+    s3 = s2.replace("_", " ").replace("-", " ")
+    # Clean up double spaces and title case
+    return " ".join(part.capitalize() for part in s3.split() if part)
 
 
 def event_tool_label(event: AnalyticsEvent) -> str:
-    return event.tool_name or event.cli_name
+    """Return the observed action label for a tool or command event."""
+    raw = ""
+    if event.cli_name:
+        raw = event.cli_name
+    else:
+        raw = event.tool_name or event.command
+    return normalize_label(raw)
 
 
-def tool_category(name: str, command: str = "") -> ToolCategory | None:
-    cleaned = name.strip()
-    cli = cli_from_command(command) if command else cleaned
-    lowered = cleaned.lower()
-    lowered_cli = cli.lower()
-    if cleaned in EDIT_TOOLS or lowered_cli == "apply_patch":
-        return ToolCategory.EDIT
-    if cleaned in SEARCH_TOOLS or lowered_cli in {"rg", "grep", "find"}:
-        return ToolCategory.SEARCH
-    if cleaned in READ_TOOLS or lowered_cli in {
-        "cat",
-        "sed",
-        "nl",
-        "ls",
-        "find",
-        "head",
-        "tail",
-    }:
-        return ToolCategory.READ
-    if lowered_cli in GIT_CLIS:
-        return ToolCategory.GIT
-    if lowered_cli in NETWORK_CLIS:
-        return ToolCategory.NETWORK
-    if lowered_cli in TEST_CLIS or any(
-        part in command
-        for part in (
-            "pytest",
-            "cargo test",
-            "pnpm test",
-            "npm test",
-            "ruff",
-            "ty check",
-        )
-    ):
-        return ToolCategory.TEST
-    if cleaned in SHELL_TOOLS:
-        return ToolCategory.SHELL
-    if cleaned in PLANNING_TOOLS:
-        return ToolCategory.PLANNING
-    if cleaned in DELEGATION_TOOLS:
-        return ToolCategory.DELEGATION
-    if cleaned in BROWSER_TOOLS or lowered.startswith("web"):
-        return ToolCategory.BROWSER
-    if cleaned:
-        return ToolCategory.OTHER
-    return None
-
-
-def tool_category_counts(events: list[AnalyticsEvent]) -> Counter[ToolCategory]:
-    counts: Counter[ToolCategory] = Counter()
+def observed_tool_counts(events: list[AnalyticsEvent]) -> Counter[str]:
+    counts: Counter[str] = Counter()
     for event in events:
-        if event.event_type not in {EventType.TOOL_CALL, EventType.CLI_COMMAND}:
+        if event.event_type not in ACTION_EVENT_TYPES:
             continue
-        category = tool_category(event_tool_label(event), event.command)
-        if category:
-            counts[category] += 1
+        label = event_tool_label(event).strip()
+        if label:
+            counts[label] += 1
     return counts
 
 
+def build_description_map(events: list[AnalyticsEvent]) -> dict[str, str]:
+    """Build a map of tool labels to their best available description or example."""
+    # We want to find both explicit descriptions and shortest command examples.
+    # explicit[label] = "captured description"
+    # examples[label] = ["cmd1", "cmd2", ...]
+    explicit: dict[str, str] = {}
+    examples: dict[str, list[str]] = {}
+
+    for event in events:
+        if event.event_type not in ACTION_EVENT_TYPES:
+            continue
+
+        label = event_tool_label(event)
+        if not label:
+            continue
+
+        if event.tool_description and label not in explicit:
+            explicit[label] = event.tool_description.lower()
+
+        if event.command:
+            cmd = event.command.strip()
+            if cmd.lower() != label.lower():
+                if label not in examples:
+                    examples[label] = []
+                examples[label].append(cmd)
+
+    # Combine results
+    result: dict[str, str] = {}
+    all_labels = set(explicit.keys()) | set(examples.keys())
+
+    for label in all_labels:
+        if label in explicit:
+            desc = explicit[label]
+            if len(desc) > 60:
+                desc = desc[:57] + "..."
+            result[label] = f"E.g., {desc}"
+        elif label in examples:
+            best = min(examples[label], key=len)
+            if len(best) > 60:
+                best = best[:57] + "..."
+            result[label] = f"E.g., {best}"
+
+    return result
+
+
 def tool_mix(events: list[AnalyticsEvent], limit: int = 5) -> list[ToolMixItem]:
-    counts = tool_category_counts(events)
+    counts = observed_tool_counts(events)
     total = sum(counts.values()) or 1
+    desc_map = build_description_map(events)
     return [
-        ToolMixItem(category=category, count=count, percent=round(count / total * 100))
-        for category, count in counts.most_common(limit)
+        ToolMixItem(
+            category=label,
+            count=count,
+            percent=round(count / total * 100),
+            description=desc_map.get(label, ""),
+        )
+        for label, count in counts.most_common(limit)
     ]

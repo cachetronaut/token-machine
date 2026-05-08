@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import shlex
 from collections.abc import Sequence
 from pathlib import Path
 from typing import Mapping, cast
@@ -144,6 +143,7 @@ class GeminiSource:
                         project_path=project_path,
                         model=model,
                         tool_name=tool_name,
+                        tool_description=string_value(tool, "displayName"),
                         command=command,
                         event_metadata=metadata(
                             tool_id=tool.get("id", ""),
@@ -249,17 +249,4 @@ def _gemini_tool_calls(obj: Mapping[str, object]) -> list[Mapping[str, object]]:
 
 def _gemini_command_from_tool(tool: Mapping[str, object]) -> str:
     args = mapping_value(tool, "args")
-    name = string_value(tool, "name")
-    if name == "run_shell_command":
-        return str(args.get("command") or args.get("cmd") or "")
-    if name == "list_directory":
-        path = str(args.get("dir_path") or args.get("path") or ".")
-        return f"ls {shlex.quote(path)}"
-    if name == "read_file":
-        path = str(args.get("file_path") or args.get("path") or "")
-        return f"cat {shlex.quote(path)}".strip()
-    if name == "grep_search":
-        pattern = str(args.get("pattern") or args.get("query") or "")
-        path = str(args.get("path") or args.get("include") or ".")
-        return f"rg {shlex.quote(pattern)} {shlex.quote(path)}".strip()
-    return ""
+    return str(args.get("command") or args.get("cmd") or "")

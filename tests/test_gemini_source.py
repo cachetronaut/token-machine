@@ -72,3 +72,67 @@ def test_gemini_json_file_detects_as_gemini_source(tmp_path: Path) -> None:
     assert source.name == AgentSource.GEMINI
     events = source.parse(chat_path, objects)
     assert any(event.event_type == EventType.MODEL_CALL for event in events)
+
+
+def test_gemini_non_shell_tools_are_recorded_without_synthetic_commands() -> None:
+    source = GeminiSource()
+    events = source.parse(
+        Path("/tmp/.gemini/tmp/project/chats/session-2.json"),
+        [
+            {
+                "sessionId": "g2",
+                "startTime": "2026-05-08T10:00:00Z",
+                "kind": "main",
+                "messages": [
+                    {
+                        "id": "m1",
+                        "type": "gemini",
+                        "timestamp": "2026-05-08T10:00:02Z",
+                        "model": "gemini-3-flash-preview",
+                        "toolCalls": [
+                            {
+                                "id": "tool1",
+                                "name": "read_file",
+                                "args": {"file_path": "README.md"},
+                            }
+                        ],
+                    },
+                ],
+            }
+        ],
+    )
+
+    assert any(
+        event.event_type == EventType.TOOL_CALL and event.tool_name == "read_file"
+        for event in events
+    )
+    assert not any(event.event_type == EventType.CLI_COMMAND for event in events)
+
+
+def test_gemini_tool_calls_capture_display_name() -> None:
+    source = GeminiSource()
+    events = source.parse(
+        Path("/tmp/.gemini/tmp/project/chats/session-3.json"),
+        [
+            {
+                "sessionId": "g3",
+                "messages": [
+                    {
+                        "id": "m1",
+                        "type": "gemini",
+                        "toolCalls": [
+                            {
+                                "id": "t1",
+                                "name": "run_shell_command",
+                                "displayName": "Search for logs",
+                                "args": {"command": "grep error *.log"},
+                            }
+                        ],
+                    },
+                ],
+            }
+        ],
+    )
+
+    tool_call = next(e for e in events if e.event_type == EventType.TOOL_CALL)
+    assert tool_call.tool_description == "Search for logs"
