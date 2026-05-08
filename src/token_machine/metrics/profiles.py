@@ -50,9 +50,7 @@ def session_profile(events: list[AnalyticsEvent]) -> SessionProfile:
     return SessionProfile(
         rollup=rollup_events(events),
         duration_seconds=session_duration_seconds(events),
-        time_to_first_tool_seconds=time_to_first(
-            events, ACTION_EVENT_TYPES
-        ),
+        time_to_first_tool_seconds=time_to_first(events, ACTION_EVENT_TYPES),
         time_to_first_edit_seconds=time_to_first(events, ACTION_EVENT_TYPES),
         tool_mix=tool_mix(events),
         workflow_role=dominant_workflow_role(events),
@@ -135,8 +133,7 @@ def model_profiles(events: list[AnalyticsEvent], limit: int = 12) -> list[ModelP
             for items in sessions.values()
         ]
         first_edit_times = [
-            time_to_first(items, ACTION_EVENT_TYPES)
-            for items in sessions.values()
+            time_to_first(items, ACTION_EVENT_TYPES) for items in sessions.values()
         ]
         rows.append(
             ModelProfile(

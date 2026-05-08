@@ -45,6 +45,13 @@ def observed_tool_counts(events: list[AnalyticsEvent]) -> Counter[str]:
     return counts
 
 
+def _truncate(text: str, limit: int = 60) -> str:
+    """Truncate text to limit with ellipsis."""
+    if len(text) <= limit:
+        return text
+    return text[: limit - 3] + "..."
+
+
 def build_description_map(events: list[AnalyticsEvent]) -> dict[str, str]:
     """Build a map of tool labels to their best available description or example."""
     # We want to find both explicit descriptions and shortest command examples.
@@ -77,15 +84,10 @@ def build_description_map(events: list[AnalyticsEvent]) -> dict[str, str]:
 
     for label in all_labels:
         if label in explicit:
-            desc = explicit[label]
-            if len(desc) > 60:
-                desc = desc[:57] + "..."
-            result[label] = f"E.g., {desc}"
+            result[label] = f"E.g., {_truncate(explicit[label])}"
         elif label in examples:
-            best = min(examples[label], key=len)
-            if len(best) > 60:
-                best = best[:57] + "..."
-            result[label] = f"E.g., {best}"
+            best = str(min(examples[label], key=len))
+            result[label] = f"E.g., {_truncate(best)}"
 
     return result
 

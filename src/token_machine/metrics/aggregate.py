@@ -7,7 +7,6 @@ from collections import Counter, defaultdict
 from token_machine.metrics.tools import (
     ACTION_EVENT_TYPES,
     build_description_map,
-    event_tool_label,
     normalize_label,
 )
 from token_machine.models import (
