@@ -121,3 +121,4 @@ settings.local.*
 *.seed
 *.pid
 *.pid.lock
+reference/plan/
