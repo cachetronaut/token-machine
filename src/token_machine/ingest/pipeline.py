@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import sqlite3
 from pathlib import Path
 
 from token_machine.ingest.discovery import detect_source, discover_files
@@ -66,7 +67,7 @@ def ingest(
                     error="" if events else "no supported events found",
                 )
             )
-        except (OSError, json.JSONDecodeError, ValueError) as exc:
+        except (OSError, json.JSONDecodeError, sqlite3.Error, ValueError) as exc:
             results.append(
                 IngestResult(
                     source_path=str(path),

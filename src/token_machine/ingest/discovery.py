@@ -26,6 +26,14 @@ def discover_files(
 def detect_source(
     path: Path, sources: tuple[SessionSource, ...] = DEFAULT_SOURCES
 ) -> tuple[SessionSource | None, list[dict[str, object]]]:
+    for source in sources:
+        if source.detect([], path):
+            if path.suffix in {".json", ".jsonl"}:
+                objects = [dict(item) for item in load_json_records(path)]
+            else:
+                objects = []
+            return source, objects
+
     objects = [dict(item) for item in load_json_records(path)]
     for source in sources:
         if source.detect(objects, path):

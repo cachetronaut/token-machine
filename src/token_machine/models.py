@@ -26,6 +26,7 @@ class AgentSource(StrEnum):
     CODEX = "codex"
     CLAUDE_CODE = "claudecode"
     GEMINI = "gemini"
+    ZED = "zed"
     UNKNOWN = "unknown"
 
 
