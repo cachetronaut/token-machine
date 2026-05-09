@@ -8,6 +8,7 @@ import {
   text,
   topEntries,
 } from "./format.js";
+import { appDisplayName, renderAppIcon } from "./icons.js";
 
 export function renderSessions(sessions) {
   text("session-count", `${sessions.length} shown`);
@@ -58,27 +59,4 @@ export function renderSessions(sessions) {
     );
     card.addEventListener("mouseleave", hideTooltip);
   });
-}
-
-function appDisplayName(source) {
-  const value = String(source || "unknown").toLowerCase();
-  if (value === "codex") return "Codex CLI";
-  if (value === "claudecode") return "Claude Code";
-  if (value === "gemini") return "Gemini CLI";
-  return value.charAt(0).toUpperCase() + value.slice(1);
-}
-
-function sourceIconName(source) {
-  const key = String(source || "").toLowerCase();
-  if (key.includes("codex")) return "codex.svg";
-  if (key.includes("claudecode")) return "claudecode.svg";
-  if (key.includes("gemini")) return "geminicli.svg";
-  if (key.includes("openai")) return "openai.svg";
-  return "";
-}
-
-function renderAppIcon(source) {
-  const icon = sourceIconName(source);
-  if (!icon) return '<span class="app-dot"></span>';
-  return `<img class="app-icon" src="/assets/icons/${encodeURIComponent(icon)}" alt="" loading="lazy" decoding="async" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><span class="app-dot" hidden></span>`;
 }

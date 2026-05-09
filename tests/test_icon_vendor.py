@@ -11,6 +11,7 @@ def test_refresh_icon_cache_writes_expected_icons_and_manifest(tmp_path: Path) -
         {
             "package/icons/codex-color.svg": "<svg><title>Codex</title></svg>",
             "package/icons/geminicli-color.svg": "<svg><title>Gemini CLI</title></svg>",
+            "package/icons/openrouter-color.svg": "<svg><title>OpenRouter</title></svg>",
         }
     )
     package_meta = {
@@ -26,13 +27,16 @@ def test_refresh_icon_cache_writes_expected_icons_and_manifest(tmp_path: Path) -
     result = refresh_icon_cache(tmp_path, download_bytes=fake_download)
 
     assert result.version == "1.0.0"
-    assert result.icon_count == 2
+    assert result.icon_count == 3
     assert (tmp_path / "cache" / "icons" / "codex.svg").read_text(
         encoding="utf-8"
     ) == "<svg><title>Codex</title></svg>"
     assert (tmp_path / "cache" / "icons" / "geminicli.svg").read_text(
         encoding="utf-8"
     ) == "<svg><title>Gemini CLI</title></svg>"
+    assert (tmp_path / "cache" / "icons" / "openrouter.svg").read_text(
+        encoding="utf-8"
+    ) == "<svg><title>OpenRouter</title></svg>"
 
     manifest = json.loads(
         (tmp_path / "cache" / "icons.json").read_text(encoding="utf-8")
@@ -40,6 +44,7 @@ def test_refresh_icon_cache_writes_expected_icons_and_manifest(tmp_path: Path) -
     assert manifest["version"] == "1.0.0"
     assert manifest["icons"]["codex.svg"] == "codex-color.svg"
     assert manifest["icons"]["geminicli.svg"] == "geminicli-color.svg"
+    assert manifest["icons"]["openrouter.svg"] == "openrouter-color.svg"
 
 
 def _icon_tarball(files: dict[str, str]) -> bytes:

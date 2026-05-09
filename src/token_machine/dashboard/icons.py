@@ -13,6 +13,20 @@ from __future__ import annotations
 
 LOBE_ICONS_PACKAGE = "@lobehub/icons-static-svg"
 
+EXTRA_ICON_NAMES = frozenset(
+    {
+        "cohere",
+        "deepseek",
+        "groq",
+        "meta",
+        "mistral",
+        "moonshot",
+        "openrouter",
+        "perplexity",
+        "xai",
+    }
+)
+
 
 def icon_filenames() -> frozenset[str]:
     """Return expected icon filenames derived from AgentSource and ModelFamily enums."""
@@ -25,4 +39,5 @@ def icon_filenames() -> frozenset[str]:
             if member not in skip:
                 names.add(f"{member.value.lower()}.svg")
     names.add("geminicli.svg")
+    names.update(f"{name}.svg" for name in EXTRA_ICON_NAMES)
     return frozenset(names)

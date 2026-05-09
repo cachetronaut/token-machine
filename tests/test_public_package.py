@@ -36,3 +36,10 @@ def test_third_party_notices_include_lobe_icons_attribution() -> None:
     assert "Lobe Icons" in text
     assert LOBE_ICONS_PACKAGE in text
     assert "MIT" in text
+
+
+def test_third_party_notices_include_zed_brand_attribution() -> None:
+    text = Path("THIRD_PARTY_NOTICES.md").read_text(encoding="utf-8")
+
+    assert "Zed Industries, Inc." in text
+    assert "https://zed.dev/brand" in text

@@ -10,7 +10,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
-from token_machine.dashboard.icons import LOBE_ICONS_PACKAGE
+from token_machine.dashboard.icons import EXTRA_ICON_NAMES, LOBE_ICONS_PACKAGE
 from token_machine.models import AgentSource, ModelFamily
 
 NPM_REGISTRY = "https://registry.npmjs.org"
@@ -81,6 +81,8 @@ def _candidate_names() -> list[str]:
             if member not in skip:
                 names[member.value.lower()] = None
     names["geminicli"] = None
+    for name in EXTRA_ICON_NAMES:
+        names[name] = None
     return list(names)
 
 

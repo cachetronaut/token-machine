@@ -32,14 +32,13 @@ def dashboard_asset_response(
         raise HTTPException(status_code=404)
 
     if kind == "icons":
-        if icons_dir is None:
-            raise HTTPException(status_code=404)
-        icon_path = icons_dir / name
-        if not icon_path.is_file():
-            raise HTTPException(status_code=404)
-        return Response(
-            icon_path.read_text(encoding="utf-8"), media_type=_MEDIA_TYPES["icons"]
-        )
+        if icons_dir is not None:
+            icon_path = icons_dir / name
+            if icon_path.is_file():
+                return Response(
+                    icon_path.read_text(encoding="utf-8"),
+                    media_type=_MEDIA_TYPES["icons"],
+                )
 
     asset = resources.files("token_machine.dashboard").joinpath("assets", kind, name)
     if not asset.is_file():

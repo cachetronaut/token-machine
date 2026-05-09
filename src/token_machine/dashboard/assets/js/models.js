@@ -8,6 +8,13 @@ import {
   projectName,
   topEntries,
 } from "./format.js";
+import {
+  appDisplayName,
+  iconUrl,
+  renderAppIcon,
+  renderModelIcon,
+  sourceIconName,
+} from "./icons.js";
 
 export function renderBars(
   id,
@@ -137,42 +144,6 @@ export function renderModelProfiles(rows) {
     .join("");
 }
 
-function appDisplayName(source) {
-  const value = String(source || "unknown").toLowerCase();
-  if (value === "codex") return "Codex CLI";
-  if (value === "claudecode" || value === "claude") return "Claude Code";
-  if (value === "gemini") return "Gemini CLI";
-  return value.charAt(0).toUpperCase() + value.slice(1);
-}
-
-function sourceIconName(source) {
-  const key = String(source || "").toLowerCase();
-  if (key.includes("codex")) return "codex.svg";
-  if (key.includes("claude")) return "claudecode.svg";
-  if (key.includes("gemini")) return "geminicli.svg";
-  if (key.includes("openai")) return "openai.svg";
-  return "";
-}
-
-function modelIconName(row) {
-  const key = String(row.model || "").toLowerCase();
-  if (key.includes("claude")) return "claude.svg";
-  if (key.includes("gemini")) return "gemini.svg";
-  if (key.includes("qwen")) return "qwen.svg";
-  if (key.includes("gpt") || key.includes("openai")) return "openai.svg";
-  return "";
-}
-
-function iconUrl(name) {
-  return `/assets/icons/${encodeURIComponent(name)}`;
-}
-
-function renderAppIcon(source) {
-  const icon = sourceIconName(source);
-  if (!icon) return '<span class="app-dot"></span>';
-  return `<img class="app-icon" src="${iconUrl(icon)}" alt="" loading="lazy" decoding="async" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><span class="app-dot" hidden></span>`;
-}
-
 function renderProviderLogo(row) {
   const icon = sourceIconName(row.source);
   if (!icon) return "";
@@ -180,18 +151,7 @@ function renderProviderLogo(row) {
 }
 
 function renderModelHero(row) {
-  const initials = escapeHtml(modelInitials(row));
-  const icon = modelIconName(row);
-  if (!icon) return `<div class="model-glyph">${initials}</div>`;
-  return `<img class="model-icon" src="${iconUrl(icon)}" alt="" loading="lazy" decoding="async" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><div class="model-glyph" hidden>${initials}</div>`;
-}
-
-function modelInitials(row) {
-  if (row.model_family === "OpenAI") return "AI";
-  if (row.model_family === "Claude") return "C";
-  if (row.model_family === "Gemini") return "G";
-  if (row.model_family === "Qwen") return "Q";
-  return "?";
+  return renderModelIcon(row);
 }
 
 function modelCardColor(row) {

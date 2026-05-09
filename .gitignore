@@ -3,6 +3,8 @@
 .AppleDouble
 .LSOverride
 Icon?
+!src/token_machine/dashboard/assets/icons/
+!src/token_machine/dashboard/assets/icons/*.svg
 ._*
 .Spotlight-V100
 .Trashes

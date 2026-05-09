@@ -63,6 +63,7 @@ def test_fastapi_dashboard_serves_packaged_assets(tmp_path: Path) -> None:
     css_response = client.get("/assets/css/base.css")
     js_response = client.get("/assets/js/dashboard.js")
     icon_response = client.get("/assets/icons/openai.svg")
+    zed_response = client.get("/assets/icons/zed.svg")
     missing_response = client.get("/assets/icons/missing.svg")
 
     assert css_response.status_code == 200
@@ -71,12 +72,23 @@ def test_fastapi_dashboard_serves_packaged_assets(tmp_path: Path) -> None:
     assert js_response.headers["content-type"].startswith("text/javascript")
     assert icon_response.status_code == 200
     assert icon_response.headers["content-type"].startswith("image/svg+xml")
+    assert zed_response.status_code == 200
+    assert zed_response.headers["content-type"].startswith("image/svg+xml")
     assert missing_response.status_code == 404
 
     # Test image asset serving (using placeholder created in setup or here)
     img_response = client.get("/assets/img/logo.png")
     assert img_response.status_code == 200
     assert img_response.headers["content-type"] == "image/png"
+
+
+def test_fastapi_dashboard_serves_packaged_icon_fallbacks(tmp_path: Path) -> None:
+    client = TestClient(create_app(tmp_path))
+
+    zed_response = client.get("/assets/icons/zed.svg")
+
+    assert zed_response.status_code == 200
+    assert "<title>Zed</title>" in zed_response.text
 
 
 def test_fastapi_dashboard_serves_lobe_icon_subset(tmp_path: Path) -> None:
@@ -94,15 +106,23 @@ def test_fastapi_dashboard_serves_lobe_icon_subset(tmp_path: Path) -> None:
 
 
 def test_dashboard_uses_package_local_icon_urls_only() -> None:
-    models_js = Path("src/token_machine/dashboard/assets/js/models.js").read_text(
-        encoding="utf-8"
-    )
     dashboard_js = "\n".join(
         path.read_text(encoding="utf-8")
         for path in Path("src/token_machine/dashboard/assets/js").glob("*.js")
     )
 
-    assert "/assets/icons/" in models_js
+    assert "/assets/icons/" in dashboard_js
     assert "https://" not in dashboard_js
     assert "http://" not in dashboard_js
     assert "unpkg.com" not in dashboard_js
+
+
+def test_dashboard_icon_mappings_include_zed_and_openrouter_models() -> None:
+    icons_js = Path("src/token_machine/dashboard/assets/js/icons.js").read_text(
+        encoding="utf-8"
+    )
+
+    assert 'if (key.includes("zed")) return "zed.svg";' in icons_js
+    assert 'return "openrouter.svg";' in icons_js
+    assert 'return "deepseek.svg";' in icons_js
+    assert 'return "meta.svg";' in icons_js
