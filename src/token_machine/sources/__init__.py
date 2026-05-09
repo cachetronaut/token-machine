@@ -6,12 +6,14 @@ from token_machine.sources.base import SessionSource
 from token_machine.sources.claude import ClaudeSource
 from token_machine.sources.codex import CodexSource
 from token_machine.sources.gemini import GeminiSource
+from token_machine.sources.opencode import OpenCodeSource
 from token_machine.sources.zed import ZedSource
 
 DEFAULT_SOURCES: tuple[SessionSource, ...] = (
     CodexSource(),
     ClaudeSource(),
     GeminiSource(),
+    OpenCodeSource(),
     ZedSource(),
 )
 
@@ -20,6 +22,7 @@ __all__ = [
     "ClaudeSource",
     "CodexSource",
     "GeminiSource",
+    "OpenCodeSource",
     "SessionSource",
     "ZedSource",
 ]

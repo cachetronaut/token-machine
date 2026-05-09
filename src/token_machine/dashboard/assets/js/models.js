@@ -10,8 +10,10 @@ import {
 } from "./format.js";
 import {
   appDisplayName,
+  iconClassName,
   iconUrl,
   renderAppIcon,
+  renderModelBadgeIcon,
   renderModelIcon,
   sourceIconName,
 } from "./icons.js";
@@ -113,7 +115,7 @@ export function renderModelProfiles(rows) {
           </div>
           <div class="card-face card-back">
             <div class="card-topline">
-              <div class="provider-logo">${renderProviderLogo(row)}</div>
+              <div class="provider-logo">${renderModelBadgeIcon(row)}</div>
               <div class="card-number">stats</div>
             </div>
             <div class="card-back-body">
@@ -147,7 +149,7 @@ export function renderModelProfiles(rows) {
 function renderProviderLogo(row) {
   const icon = sourceIconName(row.source);
   if (!icon) return "";
-  return `<img src="${iconUrl(icon)}" alt="" loading="lazy" decoding="async" onerror="this.hidden=true">`;
+  return `<img class="${iconClassName(icon, "provider-icon")}" src="${iconUrl(icon)}" alt="" loading="lazy" decoding="async" onerror="this.hidden=true">`;
 }
 
 function renderModelHero(row) {

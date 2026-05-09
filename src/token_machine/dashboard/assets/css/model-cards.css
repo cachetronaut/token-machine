@@ -85,11 +85,19 @@
   letter-spacing: 0;
 }
 
-.provider-logo img {
+.provider-logo img,
+.provider-icon {
   width: 30px;
   height: 30px;
   object-fit: contain;
   filter: drop-shadow(0 2px 4px rgba(0, 0, 0, .38));
+}
+
+.provider-glyph {
+  color: #fff;
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1;
 }
 
 .card-number {
@@ -121,6 +129,23 @@
   height: 52px;
   object-fit: contain;
   filter: drop-shadow(0 8px 18px rgba(0, 0, 0, .35));
+}
+
+.icon-on-dark,
+.provider-logo img.icon-on-dark,
+.provider-icon.icon-on-dark,
+.app-icon.icon-on-dark {
+  filter:
+    brightness(0)
+    invert(1)
+    drop-shadow(0 2px 4px rgba(0, 0, 0, .38));
+}
+
+.model-icon.icon-on-dark {
+  filter:
+    brightness(0)
+    invert(1)
+    drop-shadow(0 8px 18px rgba(0, 0, 0, .35));
 }
 
 .model-title {
@@ -342,7 +367,8 @@
 }
 
 .card-back .provider-logo { width: 30px; height: 30px; font-size: 12px; }
-.card-back .provider-logo img { width: 28px; height: 28px; }
+.card-back .provider-logo img,
+.card-back .provider-icon { width: 28px; height: 28px; }
 .card-back .model-title { font-size: 13px; line-height: .98; }
 .card-back .model-subtitle { font-size: 9px; line-height: 1.05; }
 .card-back .model-tools { font-size: 7px; line-height: 1.1; }

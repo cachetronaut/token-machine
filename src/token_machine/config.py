@@ -26,10 +26,15 @@ def default_zed_threads_db() -> Path:
     return Path.home() / ".local" / "share" / "zed" / "threads" / "threads.db"
 
 
+def default_opencode_db() -> Path:
+    return Path.home() / ".local" / "share" / "opencode" / "opencode.db"
+
+
 DEFAULT_WATCH_PATHS = (
     Path.home() / ".codex",
     Path.home() / ".claude",
     Path.home() / ".gemini",
+    default_opencode_db(),
     default_zed_threads_db(),
 )
 

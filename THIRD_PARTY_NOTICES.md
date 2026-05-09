@@ -11,11 +11,13 @@ Token Machine vendors a small static SVG subset from Lobe Icons for offline dash
 - Included icon slugs: `claude-color.svg`, `codex-color.svg`,
   `gemini-color.svg`, `openai.svg`, and `qwen-color.svg`
 - Runtime cache may also include additional local dashboard icons for supported
-  model providers and CLI tools when those slugs are available in the package.
+  model providers and CLI tools, including OpenCode and OpenRouter, when those
+  slugs are available in the package.
 
 These files are served locally from `/assets/icons/{name}.svg`. Brand names and logos may be subject to their owners' trademark rights.
 
-The OpenAI SVG fill is set to white so it remains visible on the dashboard's dark model cards.
+Dark monochrome icons such as OpenAI and OpenRouter are rendered with a light
+theme treatment in the dashboard so they remain visible on dark model cards.
 
 ## Zed
 

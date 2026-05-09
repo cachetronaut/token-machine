@@ -123,6 +123,17 @@ def test_dashboard_icon_mappings_include_zed_and_openrouter_models() -> None:
     )
 
     assert 'if (key.includes("zed")) return "zed.svg";' in icons_js
+    assert 'if (key.includes("opencode")) return "opencode.svg";' in icons_js
     assert 'return "openrouter.svg";' in icons_js
     assert 'return "deepseek.svg";' in icons_js
     assert 'return "meta.svg";' in icons_js
+    assert "icon-on-dark" in icons_js
+
+
+def test_model_card_back_uses_model_badge_icon() -> None:
+    models_js = Path("src/token_machine/dashboard/assets/js/models.js").read_text(
+        encoding="utf-8"
+    )
+
+    assert '<div class="provider-logo">${renderProviderLogo(row)}</div>' in models_js
+    assert '<div class="provider-logo">${renderModelBadgeIcon(row)}</div>' in models_js
