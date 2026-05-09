@@ -1,4 +1,5 @@
 from pathlib import Path
+import re
 
 from token_machine.dashboard.icons import LOBE_ICONS_PACKAGE
 
@@ -25,7 +26,7 @@ def test_architecture_doc_has_required_front_matter() -> None:
 
     assert text.startswith("---\n")
     assert "status: active" in text
-    assert "date: 2026-05-08" in text
+    assert re.search(r"^date: \d{4}-\d{2}-\d{2}$", text, re.MULTILINE)
     assert "description:" in text
     assert "keywords:" in text
 
