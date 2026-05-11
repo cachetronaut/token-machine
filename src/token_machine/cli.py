@@ -14,8 +14,9 @@ from token_machine.config import DEFAULT_STORE, DEFAULT_WATCH_PATHS
 from token_machine.dashboard.app import create_app
 from token_machine.dashboard.icon_vendor import refresh_icon_cache
 from token_machine.ingest.pipeline import ingest as ingest_paths
+from token_machine.live.service import refresh_live_snapshots, start_live_loop
 from token_machine.metrics.profiles import dashboard_data
-from token_machine.models import IngestStatus
+from token_machine.models import IngestStatus, jsonable
 from token_machine.storage.repository import AnalyticsRepository
 
 app = typer.Typer(help="Local analytics for CLI coding agents.")
@@ -90,6 +91,7 @@ def serve(
     ] = True,
     watch: Annotated[bool, typer.Option("--watch")] = False,
     watch_interval: Annotated[int, typer.Option("--watch-interval")] = 30,
+    live_interval: Annotated[int, typer.Option("--live-interval")] = 5,
     refresh_icons: Annotated[
         bool,
         typer.Option(
@@ -114,10 +116,14 @@ def serve(
         skipped = sum(result.status == IngestStatus.SKIPPED for result in results)
         errors = sum(result.status == IngestStatus.ERROR for result in results)
         typer.echo(f"Initial ingest: {ok} file(s), skipped {skipped}, errors {errors}.")
+    live_data = refresh_live_snapshots(DEFAULT_WATCH_PATHS, store)
+    typer.echo(f"Live snapshots: {live_data.active_count} active.")
     if watch:
         start_watch_loop(list(DEFAULT_WATCH_PATHS), store, watch_interval)
+        start_live_loop(list(DEFAULT_WATCH_PATHS), store, live_interval)
         joined = ", ".join(str(path) for path in DEFAULT_WATCH_PATHS)
         typer.echo(f"Watching {joined} every {max(5, watch_interval)} seconds")
+        typer.echo(f"Refreshing live snapshots every {max(2, live_interval)} seconds")
     typer.echo(f"Serving Token Machine at http://{host}:{port}/")
     uvicorn.run(create_app(store), host=host, port=port, log_level="debug")
 
@@ -137,6 +143,46 @@ def watch(
     while True:
         ingest_paths(watch_paths, store)
         time.sleep(max(5, interval))
+
+
+@app.command()
+def live(
+    paths: Annotated[
+        list[Path] | None,
+        typer.Argument(help="Optional watch paths. Defaults to known agent paths."),
+    ] = None,
+    store: StoreOption = DEFAULT_STORE,
+    watch: Annotated[bool, typer.Option("--watch")] = False,
+    interval: Annotated[int, typer.Option("--interval")] = 5,
+    as_json: Annotated[bool, typer.Option("--json")] = False,
+) -> None:
+    """Print active live usage snapshots."""
+    watch_paths = paths or list(DEFAULT_WATCH_PATHS)
+    while True:
+        data = refresh_live_snapshots(watch_paths, store)
+        if as_json:
+            import json
+
+            typer.echo(json.dumps(jsonable(data), indent=2, sort_keys=True))
+        else:
+            typer.echo(
+                f"Active: {data.active_count:,}; stale: {data.stale_count:,}; "
+                f"snapshots: {len(data.snapshots):,}"
+            )
+            for snapshot in data.snapshots:
+                project = (
+                    Path(snapshot.project_path).name if snapshot.project_path else ""
+                )
+                tokens = snapshot.current_metrics.get("latest_turn_tokens", 0)
+                context = snapshot.context.used_percent
+                typer.echo(
+                    f"{snapshot.source.value} {snapshot.model or '(unknown model)'} "
+                    f"{project} queries={snapshot.user_queries.get('count', 0)} "
+                    f"context={context}% latest_tokens={tokens}"
+                )
+        if not watch:
+            return
+        time.sleep(max(2, interval))
 
 
 def start_watch_loop(paths: list[Path], store: Path, interval_seconds: int) -> None:
