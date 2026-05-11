@@ -1,6 +1,7 @@
-import { fetchSummary, startPolling } from "./api.js";
+import { fetchLive, fetchSummary, startDebugReloadPolling, startPolling } from "./api.js";
 import { renderChart, renderModelDistribution } from "./charts.js";
 import { metric, text } from "./format.js";
+import { renderLive, renderLiveError } from "./live.js";
 import { renderAppLegend, renderBars, renderModelProfiles } from "./models.js";
 import { renderSessions } from "./sessions.js";
 
@@ -44,4 +45,17 @@ async function refresh() {
   }
 }
 
+async function refreshLive() {
+  try {
+    renderLive(await fetchLive());
+  } catch (error) {
+    renderLiveError();
+  }
+}
+
 startPolling(refresh);
+startPolling(refreshLive);
+startDebugReloadPolling(() => {
+  refresh();
+  refreshLive();
+});

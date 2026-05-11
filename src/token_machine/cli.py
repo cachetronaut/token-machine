@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import shlex
+import sys
 import threading
 import time
 from pathlib import Path
@@ -15,6 +17,11 @@ from token_machine.dashboard.app import create_app
 from token_machine.dashboard.icon_vendor import refresh_icon_cache
 from token_machine.ingest.pipeline import ingest as ingest_paths
 from token_machine.live.service import refresh_live_snapshots, start_live_loop
+from token_machine.live.statusline import (
+    capture_claude_statusline,
+    loads_statusline_payload,
+    run_chained_statusline,
+)
 from token_machine.metrics.profiles import dashboard_data
 from token_machine.models import IngestStatus, jsonable
 from token_machine.storage.repository import AnalyticsRepository
@@ -177,12 +184,41 @@ def live(
                 context = snapshot.context.used_percent
                 typer.echo(
                     f"{snapshot.source.value} {snapshot.model or '(unknown model)'} "
-                    f"{project} queries={snapshot.user_queries.get('count', 0)} "
+                    f"{snapshot.session_name or snapshot.session_id} {project} "
+                    f"queries={snapshot.user_queries.get('count', 0)} "
                     f"context={context}% latest_tokens={tokens}"
                 )
         if not watch:
             return
         time.sleep(max(2, interval))
+
+
+@app.command("claude-statusline")
+def claude_statusline(
+    store: StoreOption = DEFAULT_STORE,
+    chain: Annotated[
+        str,
+        typer.Option(
+            "--chain",
+            help="Optional existing statusline command to run after capture.",
+        ),
+    ] = "",
+) -> None:
+    """Capture Claude Code statusline usage JSON for the live dashboard."""
+    input_text = sys.stdin.read()
+    try:
+        payload = loads_statusline_payload(input_text)
+        capture_claude_statusline(payload, store)
+    except Exception as exc:  # noqa: BLE001 - statusline must not break Claude.
+        typer.echo(f"token-machine statusline capture failed: {exc}", err=True)
+
+    if chain:
+        exit_code = run_chained_statusline(_statusline_command_parts(chain), input_text)
+        if exit_code:
+            raise typer.Exit(exit_code)
+        return
+
+    typer.echo("Claude status captured")
 
 
 def start_watch_loop(paths: list[Path], store: Path, interval_seconds: int) -> None:
@@ -196,6 +232,13 @@ def start_watch_loop(paths: list[Path], store: Path, interval_seconds: int) -> N
 
     thread = threading.Thread(target=watch_target, daemon=True)
     thread.start()
+
+
+def _statusline_command_parts(command: str) -> list[str]:
+    return [
+        str(Path(part).expanduser()) if part.startswith("~") else part
+        for part in shlex.split(command)
+    ]
 
 
 def _print_counter(label: str, values: dict[str, int]) -> None:

@@ -2,9 +2,11 @@
 
 from token_machine.live.models import (
     LiveContextWindow,
+    LiveCompaction,
     LiveData,
     LiveProbeStatus,
     LiveRateLimit,
+    LiveSessionLimit,
     LiveToolCall,
     LiveUsageSnapshot,
 )
@@ -13,9 +15,11 @@ from token_machine.live.store import LiveUsageStore
 
 __all__ = [
     "LiveContextWindow",
+    "LiveCompaction",
     "LiveData",
     "LiveProbeStatus",
     "LiveRateLimit",
+    "LiveSessionLimit",
     "LiveToolCall",
     "LiveUsageSnapshot",
     "LiveUsageStore",

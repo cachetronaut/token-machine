@@ -33,7 +33,11 @@ def test_fastapi_dashboard_routes_return_html_and_summary(tmp_path: Path) -> Non
     assert html_response.status_code == 200
     assert "Token Machine" in html_response.text
     assert "/assets/css/base.css" in html_response.text
+    assert "/assets/css/live.css" in html_response.text
     assert "/assets/js/dashboard.js" in html_response.text
+    assert "live-lanes" in html_response.text
+    assert "live-agents" in html_response.text
+    assert "prompts" in html_response.text
     assert "models-donut" in html_response.text
     assert "model-profiles" in html_response.text
     assert "recent-sessions" in html_response.text
@@ -61,6 +65,7 @@ def test_fastapi_dashboard_serves_packaged_assets(tmp_path: Path) -> None:
     client = TestClient(create_app(tmp_path))
 
     css_response = client.get("/assets/css/base.css")
+    live_css_response = client.get("/assets/css/live.css")
     js_response = client.get("/assets/js/dashboard.js")
     icon_response = client.get("/assets/icons/openai.svg")
     zed_response = client.get("/assets/icons/zed.svg")
@@ -68,6 +73,8 @@ def test_fastapi_dashboard_serves_packaged_assets(tmp_path: Path) -> None:
 
     assert css_response.status_code == 200
     assert css_response.headers["content-type"].startswith("text/css")
+    assert live_css_response.status_code == 200
+    assert "live-console" in live_css_response.text
     assert js_response.status_code == 200
     assert js_response.headers["content-type"].startswith("text/javascript")
     assert icon_response.status_code == 200
@@ -115,6 +122,34 @@ def test_dashboard_uses_package_local_icon_urls_only() -> None:
     assert "https://" not in dashboard_js
     assert "http://" not in dashboard_js
     assert "unpkg.com" not in dashboard_js
+
+
+def test_dashboard_live_surface_polls_live_api_and_debug_reload() -> None:
+    dashboard_js = Path("src/token_machine/dashboard/assets/js/dashboard.js").read_text(
+        encoding="utf-8"
+    )
+    api_js = Path("src/token_machine/dashboard/assets/js/api.js").read_text(
+        encoding="utf-8"
+    )
+    live_js = Path("src/token_machine/dashboard/assets/js/live.js").read_text(
+        encoding="utf-8"
+    )
+
+    assert 'from "./live.js"' in dashboard_js
+    assert "/api/live" in api_js
+    assert "/api/debug/reload" in api_js
+    assert "startDebugReloadPolling" in dashboard_js
+    assert "window.location.reload" not in api_js
+    assert "live-context-critical" in live_js
+    assert "contextUsageLabel" in live_js
+    assert "limitDisplayName" in live_js
+    assert '"current"' in live_js
+    assert '"weekly"' in live_js
+    assert "live-tool-agent" in live_js
+    assert "subagent_sessions" in live_js
+    assert "session_limits" in live_js
+    assert "live-signal-compact" in live_js
+    assert "live_tool_calls" in live_js
 
 
 def test_dashboard_icon_mappings_include_zed_and_openrouter_models() -> None:

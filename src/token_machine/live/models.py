@@ -42,6 +42,26 @@ class LiveRateLimit:
 
 
 @dataclass(frozen=True)
+class LiveSessionLimit:
+    name: str
+    used_percent: int = 0
+    remaining_percent: int = 0
+    resets_at: str = ""
+    origin: str = LiveSnapshotOrigin.MISSING.value
+
+
+@dataclass(frozen=True)
+class LiveCompaction:
+    count: int = 0
+    last_at: str = ""
+    trigger: str = ""
+    pre_tokens: int = 0
+    post_tokens: int = 0
+    duration_ms: int = 0
+    origin: str = LiveSnapshotOrigin.MISSING.value
+
+
+@dataclass(frozen=True)
 class LiveToolCall:
     name: str
     status: str = "observed"
@@ -55,6 +75,7 @@ class LiveUsageSnapshot:
     source: AgentSource
     session_id: str
     source_path: str
+    session_name: str = ""
     project_path: str = ""
     model: str = ""
     updated_at: str = ""
@@ -65,6 +86,8 @@ class LiveUsageSnapshot:
     current_metrics: dict[str, int | str] = field(default_factory=dict)
     live_tool_calls: list[LiveToolCall] = field(default_factory=list)
     rate_limits: list[LiveRateLimit] = field(default_factory=list)
+    session_limits: list[LiveSessionLimit] = field(default_factory=list)
+    compaction: LiveCompaction = field(default_factory=LiveCompaction)
     token_usage: TokenUsage = field(default_factory=TokenUsage)
     origin: str = LiveSnapshotOrigin.MISSING.value
     error: str = ""
@@ -86,6 +109,7 @@ def snapshot_from_mapping(data: Mapping[str, object]) -> LiveUsageSnapshot:
         source=source,
         session_id=str(data.get("session_id", "")),
         source_path=str(data.get("source_path", "")),
+        session_name=str(data.get("session_name", "")),
         project_path=str(data.get("project_path", "")),
         model=str(data.get("model", "")),
         updated_at=str(data.get("updated_at", "")),
@@ -120,6 +144,29 @@ def snapshot_from_mapping(data: Mapping[str, object]) -> LiveUsageSnapshot:
             )
             for item in _mapping_list(data.get("rate_limits"))
         ],
+        session_limits=[
+            LiveSessionLimit(
+                name=str(item.get("name", "")),
+                used_percent=safe_int(item.get("used_percent")),
+                remaining_percent=safe_int(item.get("remaining_percent")),
+                resets_at=str(item.get("resets_at", "")),
+                origin=str(item.get("origin", LiveSnapshotOrigin.MISSING.value)),
+            )
+            for item in _mapping_list(data.get("session_limits"))
+        ],
+        compaction=LiveCompaction(
+            count=safe_int(_mapping(data.get("compaction")).get("count")),
+            last_at=str(_mapping(data.get("compaction")).get("last_at", "")),
+            trigger=str(_mapping(data.get("compaction")).get("trigger", "")),
+            pre_tokens=safe_int(_mapping(data.get("compaction")).get("pre_tokens")),
+            post_tokens=safe_int(_mapping(data.get("compaction")).get("post_tokens")),
+            duration_ms=safe_int(_mapping(data.get("compaction")).get("duration_ms")),
+            origin=str(
+                _mapping(data.get("compaction")).get(
+                    "origin", LiveSnapshotOrigin.MISSING.value
+                )
+            ),
+        ),
         token_usage=TokenUsage.from_mapping(token_data),
         origin=str(data.get("origin", LiveSnapshotOrigin.MISSING.value)),
         error=str(data.get("error", "")),

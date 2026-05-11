@@ -2,15 +2,18 @@
 
 from __future__ import annotations
 
+import re
 from collections.abc import Sequence
 from pathlib import Path
 from typing import Mapping, cast
 
 from token_machine.live.models import (
     LiveContextWindow,
+    LiveCompaction,
     LiveProbeStatus,
     LiveRateLimit,
     LiveSnapshotOrigin,
+    LiveSessionLimit,
     LiveToolCall,
     LiveUsageSnapshot,
 )
@@ -23,6 +26,13 @@ from token_machine.sources.base import (
 )
 from token_machine.sources.gemini import _gemini_command_from_tool, _gemini_project_path
 from token_machine.utils.time import utc_now
+
+SESSION_NAME_MAX = 86
+_UUID_RE = re.compile(
+    r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+    re.I,
+)
+_XML_TAG_RE = re.compile(r"<[^>]+>")
 
 
 def codex_snapshot(
@@ -39,6 +49,7 @@ def codex_snapshot(
     context = LiveContextWindow(origin=LiveSnapshotOrigin.MISSING.value)
     tool_calls: dict[str, LiveToolCall] = {}
     tools_seen = 0
+    compaction = LiveCompaction(origin=LiveSnapshotOrigin.MISSING.value)
 
     for obj in objects:
         timestamp = string_value(obj, "timestamp")
@@ -46,6 +57,7 @@ def codex_snapshot(
             updated_at = timestamp
         payload = mapping_value(obj, "payload")
         obj_type = string_value(obj, "type")
+        compaction = _latest_compaction(compaction, obj, timestamp)
 
         if obj_type == "session_meta":
             session_id = string_value(payload, "id", session_id)
@@ -115,6 +127,7 @@ def codex_snapshot(
         source=AgentSource.CODEX,
         session_id=session_id,
         source_path=str(path),
+        session_name=_session_name(path, objects),
         project_path=project_path,
         model=model,
         updated_at=updated_at,
@@ -135,6 +148,8 @@ def codex_snapshot(
         },
         live_tool_calls=visible_tools,
         rate_limits=_codex_rate_limits(objects),
+        session_limits=_session_limits_from_rate_limits(_codex_rate_limits(objects)),
+        compaction=compaction,
         token_usage=latest_usage,
         origin=LiveSnapshotOrigin.TRANSCRIPT.value,
     )
@@ -152,16 +167,19 @@ def claude_snapshot(
     latest_usage = TokenUsage()
     session_total = 0
     tools: list[LiveToolCall] = []
+    subagent_sessions = _claude_subagent_count(path)
+    compaction = LiveCompaction(origin=LiveSnapshotOrigin.MISSING.value)
 
     for obj in objects:
         timestamp = string_value(obj, "timestamp")
         if timestamp:
             updated_at = timestamp
+        compaction = _latest_compaction(compaction, obj, timestamp)
         session_id = string_value(obj, "sessionId", session_id)
         project_path = string_value(obj, "cwd", project_path)
         message = mapping_value(obj, "message")
         role = string_value(message, "role") or string_value(obj, "type")
-        if role == "user":
+        if role == "user" and _is_human_claude_prompt(message):
             user_count += 1
             last_user_at = timestamp or last_user_at
         if role != "assistant":
@@ -192,6 +210,7 @@ def claude_snapshot(
         source=AgentSource.CLAUDE_CODE,
         session_id=session_id,
         source_path=str(path),
+        session_name=_session_name(path, objects),
         project_path=project_path,
         model=model,
         updated_at=updated_at,
@@ -199,8 +218,12 @@ def claude_snapshot(
         status=LiveProbeStatus.ACTIVE,
         user_queries={"count": user_count, "last_at": last_user_at},
         context=_context_from_usage(latest_usage),
-        current_metrics=_metrics(latest_usage, session_total, len(objects), len(tools)),
+        current_metrics={
+            **_metrics(latest_usage, session_total, len(objects), len(tools)),
+            "subagent_sessions": subagent_sessions,
+        },
         live_tool_calls=tools[-8:],
+        compaction=compaction,
         token_usage=latest_usage,
         origin=LiveSnapshotOrigin.TRANSCRIPT.value,
     )
@@ -222,6 +245,8 @@ def gemini_snapshot(
     latest_usage = TokenUsage()
     session_total = 0
     tools: list[LiveToolCall] = []
+    subagent_sessions = _gemini_subagent_count(records)
+    compaction = LiveCompaction(origin=LiveSnapshotOrigin.MISSING.value)
 
     for record in records:
         timestamp = (
@@ -231,6 +256,7 @@ def gemini_snapshot(
         )
         if timestamp:
             updated_at = timestamp
+        compaction = _latest_compaction(compaction, record, timestamp)
         session_id = str(record.get("sessionId") or session_id)
         record_type = string_value(record, "type")
         if record_type == "user":
@@ -258,6 +284,7 @@ def gemini_snapshot(
         source=AgentSource.GEMINI,
         session_id=session_id,
         source_path=str(path),
+        session_name=_session_name(path, records),
         project_path=project_path,
         model=model,
         updated_at=updated_at,
@@ -265,8 +292,12 @@ def gemini_snapshot(
         status=LiveProbeStatus.ACTIVE,
         user_queries={"count": user_count, "last_at": last_user_at},
         context=_context_from_usage(latest_usage),
-        current_metrics=_metrics(latest_usage, session_total, len(records), len(tools)),
+        current_metrics={
+            **_metrics(latest_usage, session_total, len(records), len(tools)),
+            "subagent_sessions": subagent_sessions,
+        },
         live_tool_calls=tools[-8:],
+        compaction=compaction,
         token_usage=latest_usage,
         origin=LiveSnapshotOrigin.TRANSCRIPT.value,
     )
@@ -303,6 +334,23 @@ def _codex_rate_limits(objects: Sequence[Mapping[str, object]]) -> list[LiveRate
             )
         break
     return rate_limits
+
+
+def _session_limits_from_rate_limits(
+    rate_limits: Sequence[LiveRateLimit],
+) -> list[LiveSessionLimit]:
+    limits: list[LiveSessionLimit] = []
+    for limit in rate_limits:
+        limits.append(
+            LiveSessionLimit(
+                name=limit.name,
+                used_percent=limit.used_percent,
+                remaining_percent=max(0, 100 - limit.used_percent),
+                resets_at=limit.resets_at,
+                origin=limit.origin,
+            )
+        )
+    return limits
 
 
 def _codex_command(payload: Mapping[str, object]) -> str:
@@ -347,8 +395,197 @@ def _metrics(
     }
 
 
+def _is_human_claude_prompt(message: Mapping[str, object]) -> bool:
+    content = message.get("content")
+    if isinstance(content, list):
+        for item in content:
+            if not isinstance(item, Mapping):
+                continue
+            typed_item = cast(Mapping[str, object], item)
+            if typed_item.get("type") == "tool_result":
+                return False
+        return True
+    if not isinstance(content, str):
+        return False
+    stripped = content.strip()
+    if not stripped:
+        return False
+    synthetic_prefixes = (
+        "<local-command-caveat>",
+        "<local-command-stdout>",
+        "<local-command-stderr>",
+        "<command-name>",
+    )
+    return not stripped.startswith(synthetic_prefixes)
+
+
+def _latest_compaction(
+    current: LiveCompaction, obj: Mapping[str, object], timestamp: str
+) -> LiveCompaction:
+    subtype = string_value(obj, "subtype")
+    content = string_value(obj, "content")
+    obj_type = string_value(obj, "type")
+    compact_metadata = mapping_value(obj, "compactMetadata")
+    if obj.get("isCompactSummary") is True and current.count:
+        return current
+    content_key = content.strip().lower()
+    is_compaction = (
+        subtype == "compact_boundary"
+        or obj.get("isCompactSummary") is True
+        or content_key == "conversation compacted"
+        or obj_type.lower() in {"compact", "compaction", "compact_boundary"}
+    )
+    if not is_compaction:
+        return current
+    count = current.count + 1
+    return LiveCompaction(
+        count=count,
+        last_at=timestamp or current.last_at,
+        trigger=string_value(compact_metadata, "trigger", current.trigger),
+        pre_tokens=safe_int(compact_metadata.get("preTokens")) or current.pre_tokens,
+        post_tokens=safe_int(compact_metadata.get("postTokens")) or current.post_tokens,
+        duration_ms=safe_int(compact_metadata.get("durationMs")) or current.duration_ms,
+        origin=LiveSnapshotOrigin.TRANSCRIPT.value,
+    )
+
+
 def _optional_mapping(value: object) -> Mapping[str, object] | None:
     return cast(Mapping[str, object], value) if isinstance(value, Mapping) else None
+
+
+def _session_name(path: Path, objects: Sequence[Mapping[str, object]]) -> str:
+    for obj in objects:
+        explicit = _explicit_session_name(obj)
+        if explicit:
+            return explicit
+    for obj in reversed(objects):
+        prompt_name = _prompt_session_name(obj)
+        if prompt_name:
+            return prompt_name
+    return path.stem
+
+
+def _explicit_session_name(obj: Mapping[str, object]) -> str:
+    if string_value(obj, "type") == "ai-title":
+        value = _normalize_session_name(string_value(obj, "aiTitle"))
+        return value if _is_readable_session_name(value) else ""
+    if string_value(obj, "type") == "last-prompt":
+        value = _normalize_session_name(string_value(obj, "lastPrompt"))
+        return value if _is_prompt_like_session_name(value) else ""
+    for key in ("sessionName", "session_name", "title", "summary"):
+        value = _normalize_session_name(string_value(obj, key))
+        if value and _is_readable_session_name(value):
+            return value
+    payload = mapping_value(obj, "payload")
+    for key in ("sessionName", "session_name", "title", "summary"):
+        value = _normalize_session_name(string_value(payload, key))
+        if value and _is_readable_session_name(value):
+            return value
+    return ""
+
+
+def _prompt_session_name(obj: Mapping[str, object]) -> str:
+    payload = mapping_value(obj, "payload")
+    obj_type = string_value(obj, "type")
+    if obj_type == "response_item" and string_value(payload, "type") == "message":
+        role = string_value(payload, "role")
+        if role == "user":
+            return _normalize_prompt_name(_content_text(payload.get("content")))
+
+    message = mapping_value(obj, "message")
+    role = string_value(message, "role") or obj_type
+    if role == "user" and _is_human_claude_prompt(message):
+        return _normalize_prompt_name(_content_text(message.get("content")))
+
+    record_type = string_value(obj, "type")
+    if record_type == "user":
+        return _normalize_prompt_name(_content_text(obj.get("content")))
+    return ""
+
+
+def _content_text(content: object) -> str:
+    if isinstance(content, str):
+        return content
+    if not isinstance(content, list):
+        return ""
+    pieces: list[str] = []
+    for item in content:
+        if isinstance(item, str):
+            pieces.append(item)
+        elif isinstance(item, Mapping):
+            typed_item = cast(Mapping[str, object], item)
+            text = typed_item.get("text") or typed_item.get("content")
+            if isinstance(text, str):
+                pieces.append(text)
+    return " ".join(pieces)
+
+
+def _normalize_prompt_name(value: str) -> str:
+    normalized = _normalize_session_name(value)
+    if not normalized or not _is_prompt_like_session_name(normalized):
+        return ""
+    return normalized
+
+
+def _normalize_session_name(value: str) -> str:
+    cleaned = _XML_TAG_RE.sub(" ", value)
+    cleaned = re.sub(r"\s+", " ", cleaned).strip(" -:\t\r\n")
+    if not cleaned:
+        return ""
+    if len(cleaned) <= SESSION_NAME_MAX:
+        return cleaned
+    return cleaned[: SESSION_NAME_MAX - 1].rstrip() + "..."
+
+
+def _is_readable_session_name(value: str) -> bool:
+    if value.lower() in {"none", "null", "unknown", "untitled"}:
+        return False
+    if _UUID_RE.match(value):
+        return False
+    if value.startswith(("rollout-", "session-")):
+        return False
+    return bool(re.search(r"[A-Za-z]{3}", value))
+
+
+def _is_prompt_like_session_name(value: str) -> bool:
+    synthetic_prefixes = (
+        "Caveat:",
+        "The messages below were generated",
+        "permissions instructions",
+        "# AGENTS.md instructions",
+        "AGENTS.md instructions",
+        "Knowledge cutoff:",
+        "You are Codex",
+        "You are Claude",
+        "## Memory",
+    )
+    if value.startswith(synthetic_prefixes):
+        return False
+    if value.startswith(("[", "{")) and "tool_use_id" in value:
+        return False
+    return _is_readable_session_name(value)
+
+
+def _claude_subagent_count(path: Path) -> int:
+    if "subagents" in path.parts:
+        return 0
+    subagents_dir = path.with_suffix("") / "subagents"
+    if not subagents_dir.exists():
+        return 0
+    try:
+        return sum(1 for item in subagents_dir.glob("*.jsonl") if item.is_file())
+    except OSError:
+        return 0
+
+
+def _gemini_subagent_count(records: Sequence[Mapping[str, object]]) -> int:
+    agent_ids: set[str] = set()
+    for record in records:
+        for key in ("agentId", "subagentId", "agent_id", "subagent_id"):
+            value = string_value(record, key)
+            if value:
+                agent_ids.add(value)
+    return len(agent_ids)
 
 
 def _mapping_list(value: object) -> list[Mapping[str, object]]:

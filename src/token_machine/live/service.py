@@ -28,6 +28,8 @@ LIVE_SOURCES: tuple[SessionSource, ...] = (
     GeminiSource(),
 )
 ACTIVE_WINDOW_SECONDS = 6 * 60 * 60
+PROBE_STALE_SECONDS = 20
+SESSION_ACTIVE_SECONDS = 10 * 60
 
 
 def refresh_live_snapshots(
@@ -81,13 +83,19 @@ def refresh_live_snapshots(
 
 
 def live_data(
-    snapshots: Sequence[object], *, stale_after_seconds: int = 15
+    snapshots: Sequence[object],
+    *,
+    stale_after_seconds: int = PROBE_STALE_SECONDS,
+    session_active_seconds: int = SESSION_ACTIVE_SECONDS,
 ) -> LiveData:
     typed = [
         snapshot for snapshot in snapshots if isinstance(snapshot, LiveUsageSnapshot)
     ]
     now = datetime.now(UTC)
-    typed = [_mark_stale(snapshot, now, stale_after_seconds) for snapshot in typed]
+    typed = [
+        _mark_stale(snapshot, now, stale_after_seconds, session_active_seconds)
+        for snapshot in typed
+    ]
     active_count = sum(
         getattr(snapshot, "status", None) == LiveProbeStatus.ACTIVE
         for snapshot in typed
@@ -126,7 +134,6 @@ def reload_state(store: Path) -> dict[str, object]:
     roots = [
         Path(__file__).parents[1] / "dashboard" / "assets",
         Path(__file__).parents[1] / "dashboard" / "templates",
-        store / "live" / "snapshots",
     ]
     latest = 0.0
     checked = 0
@@ -171,14 +178,24 @@ def live_json_from_store(store: Path):
 
 
 def _mark_stale(
-    snapshot: LiveUsageSnapshot, now: datetime, stale_after_seconds: int
+    snapshot: LiveUsageSnapshot,
+    now: datetime,
+    stale_after_seconds: int,
+    session_active_seconds: int,
 ) -> LiveUsageSnapshot:
     if snapshot.status != LiveProbeStatus.ACTIVE:
         return snapshot
     observed_at = parse_timestamp(snapshot.observed_at)
     if observed_at is None:
         return replace(snapshot, status=LiveProbeStatus.STALE)
-    age = (now - observed_at).total_seconds()
-    if age > stale_after_seconds:
+    observed_age = (now - observed_at).total_seconds()
+    if observed_age > stale_after_seconds:
+        return replace(snapshot, status=LiveProbeStatus.STALE)
+
+    updated_at = parse_timestamp(snapshot.updated_at)
+    if updated_at is None:
+        return replace(snapshot, status=LiveProbeStatus.STALE)
+    session_age = (now - updated_at).total_seconds()
+    if session_age > session_active_seconds:
         return replace(snapshot, status=LiveProbeStatus.STALE)
     return snapshot

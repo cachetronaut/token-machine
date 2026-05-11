@@ -12,6 +12,7 @@ DASHBOARD_VIEW_MODEL = DashboardViewModel(
     css_assets=(
         "/assets/css/base.css",
         "/assets/css/layout.css",
+        "/assets/css/live.css",
         "/assets/css/charts.css",
         "/assets/css/model-cards.css",
         "/assets/css/timeline.css",

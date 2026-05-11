@@ -7,6 +7,7 @@ from typer.testing import CliRunner
 
 from token_machine.dashboard.icon_vendor import IconRefreshResult
 from token_machine.cli import app
+from token_machine.live.store import LiveUsageStore
 from token_machine.storage.repository import AnalyticsRepository
 
 
@@ -65,6 +66,26 @@ def test_serve_help_exposes_initial_ingest_toggle() -> None:
     assert "--no-ingest" in result.output
     assert "--refresh-icons" in result.output
     assert "--no-refresh-icons" in result.output
+
+
+def test_claude_statusline_command_captures_stdin_payload(tmp_path: Path) -> None:
+    payload = {
+        "session_id": "c1",
+        "workspace": {"current_dir": "/work/project"},
+        "rate_limits": {"five_hour": {"used_percentage": 60, "resets_at": 1776621600}},
+    }
+
+    result = CliRunner().invoke(
+        app,
+        ["claude-statusline", "--store", str(tmp_path)],
+        input=json.dumps(payload),
+    )
+
+    snapshots = LiveUsageStore(tmp_path).load_snapshots()
+    assert result.exit_code == 0
+    assert "Claude status captured" in result.output
+    assert snapshots[0].session_id == "c1"
+    assert snapshots[0].session_limits[0].remaining_percent == 40
 
 
 def test_serve_runs_initial_ingest_before_starting_server(
