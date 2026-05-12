@@ -14,13 +14,19 @@
   --amber: #f6c453;
   --coral: #ff7f6e;
   --blue: #6ba6ff;
+  --surface-border: #26313e;
+  --surface-grid: rgba(255, 255, 255, .024);
+  --surface-top: #171b22;
+  --surface-bottom: #111419;
 }
 
 * { box-sizing: border-box; }
 
 body {
   margin: 0;
-  background: var(--bg);
+  background:
+    linear-gradient(90deg, rgba(67, 199, 183, .035), transparent 26%),
+    linear-gradient(180deg, #121212, var(--bg) 36%);
   color: var(--text);
   font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }

@@ -2,7 +2,12 @@ import { appColor } from "./charts.js";
 import { compactNumber, escapeHtml, fmt, projectName } from "./format.js";
 import { appDisplayName, renderAppIcon } from "./icons.js";
 
+let liveDisclosureReady = false;
+let liveToolsPrimed = false;
+const knownLiveTools = new Set();
+
 export function renderLive(data) {
+  ensureLiveDisclosure();
   const lanesRoot = document.getElementById("live-lanes");
   const snapshots = (data.snapshots || []).slice().sort(compareSnapshots);
   const activeSnapshots = snapshots.filter((snapshot) => snapshot.status === "active");
@@ -18,13 +23,16 @@ export function renderLive(data) {
 
   if (!snapshots.length) {
     updateLanes(lanesRoot, '<div class="live-empty">No live sessions detected</div>', signature);
+    commitRenderedToolKeys(snapshots);
     return;
   }
 
   updateLanes(lanesRoot, snapshots.slice(0, 8).map(renderLane).join(""), signature);
+  commitRenderedToolKeys(snapshots);
 }
 
 export function renderLiveError() {
+  ensureLiveDisclosure();
   setText("live-active", "0");
   setText("live-queries", "0");
   setText("live-tools", "0");
@@ -101,7 +109,7 @@ function renderLane(snapshot) {
           <span class="live-source-icon">${renderAppIcon(snapshot.source)}</span>
           <span>${escapeHtml(sourceName)}</span>
         </div>
-        <span class="live-state">${escapeHtml(status)}</span>
+        <span class="live-state live-state-${escapeHtml(status)}" aria-label="${escapeHtml(status)}" title="${escapeHtml(status)}"></span>
       </div>
       <div class="live-model" title="${escapeHtml(model)}">${escapeHtml(model)}</div>
       <div class="live-session" title="${escapeHtml(snapshot.session_id || "")}">${escapeHtml(sessionName)}</div>
@@ -124,7 +132,7 @@ function renderLane(snapshot) {
         <div><span>session</span><strong>${compactNumber(sessionTokens(snapshot))}</strong></div>
       </div>
       ${renderSessionLimits(sessionLimits)}
-      ${renderTools(tools)}
+      ${renderTools(tools, snapshot)}
     </article>
   `;
 }
@@ -152,22 +160,29 @@ function renderSessionLimits(sessionLimits) {
   `;
 }
 
-function renderTools(tools) {
+function renderTools(tools, snapshot) {
   if (!tools.length) {
     return '<div class="live-tools-empty">No live tools</div>';
   }
+  const orderedTools = tools.slice().sort(compareTools);
+  const toolKeys = orderedTools.map((tool) => liveToolKey(snapshot, tool));
   return `
-    <div class="live-tools">
-      ${tools
-        .slice(0, 4)
-        .map((tool) => {
+    <div class="live-tools" aria-label="Live tool calls">
+      ${orderedTools
+        .map((tool, index) => {
           const command = tool.command || "";
           const label = command ? commandLabel(command) : tool.name || "tool";
           const subagentClass = isSubagentTool(tool) ? " live-tool-agent" : "";
+          const key = toolKeys[index];
+          const newClass = liveToolsPrimed && !knownLiveTools.has(key) ? " live-tool-new" : "";
+          const currentClass = index === 0 ? " live-tool-current" : "";
           return `
-            <div class="live-tool${subagentClass}" title="${escapeHtml(toolTitle(tool))}">
-              <span>${escapeHtml(tool.name || "tool")}</span>
-              <strong>${escapeHtml(label)}</strong>
+            <div class="live-tool${subagentClass}${currentClass}${newClass}" title="${escapeHtml(toolTitle(tool))}" style="--tool-index:${index}">
+              <span class="live-tool-dot" aria-hidden="true"></span>
+              <div class="live-tool-copy">
+                <span>${escapeHtml(tool.name || "tool")}</span>
+                <strong>${escapeHtml(label)}</strong>
+              </div>
             </div>
           `;
         })
@@ -176,9 +191,35 @@ function renderTools(tools) {
   `;
 }
 
+function commitRenderedToolKeys(snapshots) {
+  for (const snapshot of snapshots) {
+    for (const tool of snapshot.live_tool_calls || []) {
+      knownLiveTools.add(liveToolKey(snapshot, tool));
+    }
+  }
+  liveToolsPrimed = true;
+}
+
+function liveToolKey(snapshot, tool) {
+  return [
+    snapshot.session_id,
+    snapshot.source,
+    tool.name,
+    tool.command,
+    tool.status,
+    tool.updated_at,
+  ].join("::");
+}
+
+function compareTools(a, b) {
+  const delta = Date.parse(b.updated_at || "") - Date.parse(a.updated_at || "");
+  if (!Number.isNaN(delta) && delta) return delta;
+  return String(b.command || b.name || "").localeCompare(String(a.command || a.name || ""));
+}
+
 function commandLabel(command) {
   const value = String(command || "").replace(/\s+/g, " ").trim();
-  return value.length > 38 ? `${value.slice(0, 35)}...` : value;
+  return value.length > 72 ? `${value.slice(0, 69)}...` : value;
 }
 
 function contextTitle(context) {
@@ -268,6 +309,19 @@ function updateLanes(root, html, signature) {
   root.classList.remove("live-lanes-updated");
   window.requestAnimationFrame(() => {
     root.classList.add("live-lanes-updated");
+  });
+}
+
+function ensureLiveDisclosure() {
+  if (liveDisclosureReady) return;
+  const consoleRoot = document.getElementById("live-console");
+  const toggle = document.getElementById("live-toggle");
+  if (!consoleRoot || !toggle) return;
+  liveDisclosureReady = true;
+  toggle.addEventListener("click", () => {
+    const isOpen = consoleRoot.classList.toggle("live-open");
+    consoleRoot.classList.toggle("live-collapsed", !isOpen);
+    toggle.setAttribute("aria-expanded", String(isOpen));
   });
 }
 

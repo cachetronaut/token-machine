@@ -2,11 +2,11 @@
     position: relative;
     margin-bottom: 12px;
     overflow: hidden;
-    border: 1px solid #26313e;
+    border: 1px solid var(--surface-border);
     border-radius: 8px;
     background:
         linear-gradient(90deg, rgba(67, 199, 183, .08), transparent 24%),
-        linear-gradient(180deg, #171b22, #111419);
+        linear-gradient(180deg, var(--surface-top), var(--surface-bottom));
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, .04);
 }
 
@@ -23,9 +23,9 @@
 
 .live-strip {
     position: relative;
-    display: flex;
+    display: grid;
+    grid-template-columns: minmax(210px, 1fr) minmax(420px, .92fr);
     align-items: stretch;
-    justify-content: space-between;
     gap: 12px;
     padding: 12px;
     border-bottom: 1px solid #26313e;
@@ -36,6 +36,18 @@
     min-width: 0;
     align-items: center;
     gap: 10px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+    font: inherit;
+    text-align: left;
+}
+
+.live-strip-left:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--teal), white 18%);
+    outline-offset: 5px;
 }
 
 .live-led {
@@ -76,6 +88,28 @@
     background: rgba(9, 12, 16, .42);
 }
 
+.live-toggle-icon {
+    width: 8px;
+    height: 8px;
+    flex: 0 0 auto;
+    margin-right: -2px;
+    border-right: 2px solid #c9d3dc;
+    border-bottom: 2px solid #c9d3dc;
+    opacity: .75;
+    transform: rotate(-45deg);
+    transition:
+        opacity .18s ease,
+        transform .18s ease;
+}
+
+.live-strip-left:hover .live-toggle-icon {
+    opacity: 1;
+}
+
+.live-open .live-toggle-icon {
+    transform: rotate(45deg) translateY(-1px);
+}
+
 .live-stat {
     min-width: 0;
     padding: 8px 10px;
@@ -89,7 +123,7 @@
 .live-stat span,
 .live-context-row span,
 .live-microgrid span,
-.live-tool span {
+.live-tool-copy > span {
     display: block;
     color: var(--muted);
     font-size: 10px;
@@ -113,6 +147,20 @@
     grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
     gap: 1px;
     background: #26313e;
+    transition:
+        max-height .24s ease,
+        opacity .2s ease;
+}
+
+.live-collapsed .live-lanes {
+    max-height: 0;
+    opacity: 0;
+    overflow: hidden;
+}
+
+.live-open .live-lanes {
+    max-height: 1200px;
+    opacity: 1;
 }
 
 .live-lanes-updated .live-lane {
@@ -181,14 +229,64 @@
 }
 
 .live-state {
+    position: relative;
     flex: 0 0 auto;
-    padding: 3px 6px;
-    border: 1px solid color-mix(in srgb, var(--live-color), white 20%);
-    border-radius: 4px;
-    background: rgba(0, 0, 0, .22);
-    color: #e8eef5;
-    font-size: 10px;
-    text-transform: uppercase;
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+    background: var(--live-state-color, var(--green));
+    box-shadow: 0 0 12px var(--live-state-color, var(--green));
+}
+
+.live-state::after {
+    position: absolute;
+    inset: -5px;
+    border: 1px solid var(--live-state-color, var(--green));
+    border-radius: inherit;
+    content: "";
+    opacity: 0;
+}
+
+.live-state-active {
+    --live-state-color: var(--green);
+}
+
+.live-state-active::after {
+    animation: live-state-pulse 1.6s ease-out infinite;
+}
+
+.live-state-stale {
+    --live-state-color: var(--amber);
+}
+
+.live-state-missing {
+    --live-state-color: #f2994a;
+}
+
+.live-state-stale,
+.live-state-missing {
+    opacity: .82;
+}
+
+.live-state-error {
+    --live-state-color: var(--coral);
+}
+
+.live-state-error::after {
+    animation: live-state-pulse 1.6s ease-out infinite;
+}
+
+@keyframes live-state-pulse {
+    0% {
+        opacity: .7;
+        transform: scale(.65);
+    }
+
+    70%,
+    100% {
+        opacity: 0;
+        transform: scale(1.45);
+    }
 }
 
 .live-model {
@@ -350,27 +448,64 @@
 }
 
 .live-tools {
+    position: relative;
     display: grid;
-    gap: 5px;
-    margin-top: 10px;
+    gap: 9px;
+    margin-top: 12px;
+    padding-left: 30px;
+}
+
+.live-tools::before {
+    position: absolute;
+    top: 7px;
+    bottom: 8px;
+    left: 9px;
+    width: 1px;
+    background: color-mix(in srgb, var(--live-color), var(--line) 58%);
+    content: "";
 }
 
 .live-tool {
+    position: relative;
+    display: block;
     min-width: 0;
-    padding: 6px 7px;
-    border: 1px solid rgba(255, 255, 255, .08);
-    border-radius: 5px;
-    background: rgba(0, 0, 0, .28);
+}
+
+.live-tool-new {
+    animation: live-tool-enter .3s ease-out both;
 }
 
 .live-tool-agent {
-    border-color: color-mix(in srgb, var(--amber), white 16%);
-    background: rgba(246, 196, 83, .1);
+    color: #fff2c4;
+}
+
+.live-tool-dot {
+    position: absolute;
+    top: 4px;
+    left: -25px;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--live-color);
+    box-shadow: 0 0 14px var(--live-color);
+}
+
+.live-tool-current .live-tool-dot {
+    animation: live-tool-glow 1.45s ease-in-out infinite;
+}
+
+.live-tool-agent .live-tool-dot {
+    background: var(--amber);
+    box-shadow: 0 0 14px rgba(246, 196, 83, .58);
+}
+
+.live-tool-copy {
+    min-width: 0;
 }
 
 .live-tool strong {
     display: block;
-    margin-top: 3px;
+    margin-top: 2px;
     overflow: hidden;
     color: #f6f8fb;
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
@@ -378,6 +513,52 @@
     font-weight: 650;
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+
+.live-tool-new .live-tool-copy {
+    animation: live-tool-type .42s steps(18, end) both;
+    animation-delay: calc(var(--tool-index, 0) * 70ms);
+}
+
+@keyframes live-tool-enter {
+    from {
+        margin-top: -10px;
+        opacity: 0;
+        transform: translateY(-8px);
+    }
+
+    to {
+        margin-top: 0;
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes live-tool-type {
+    from {
+        clip-path: inset(0 100% 0 0);
+        opacity: .35;
+    }
+
+    to {
+        clip-path: inset(0 0 0 0);
+        opacity: 1;
+    }
+}
+
+@keyframes live-tool-glow {
+    0%,
+    100% {
+        box-shadow: 0 0 8px var(--live-color);
+        transform: scale(1);
+    }
+
+    50% {
+        box-shadow:
+            0 0 10px var(--live-color),
+            0 0 24px color-mix(in srgb, var(--live-color), transparent 35%);
+        transform: scale(1.22);
+    }
 }
 
 .live-limit-empty,
@@ -399,7 +580,7 @@
 
 @media (max-width: 920px) {
     .live-strip {
-        flex-direction: column;
+        grid-template-columns: 1fr;
     }
 
     .live-strip-stats {

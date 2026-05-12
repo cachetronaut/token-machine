@@ -1,12 +1,19 @@
-<section class="live-console" aria-labelledby="live-title">
+<section class="live-console live-collapsed" aria-labelledby="live-title" id="live-console">
     <div class="live-strip">
-        <div class="live-strip-left">
+        <button
+            class="live-strip-left"
+            type="button"
+            id="live-toggle"
+            aria-expanded="false"
+            aria-controls="live-lanes"
+        >
+            <span class="live-toggle-icon" aria-hidden="true"></span>
             <span class="live-led" id="live-led"></span>
             <div>
-                <h2 id="live-title">Live context</h2>
+                <h2 id="live-title">Live Context</h2>
                 <div class="live-subline" id="live-subline">Awaiting sessions</div>
             </div>
-        </div>
+        </button>
         <div class="live-strip-stats" aria-label="Live usage summary">
             <div class="live-stat">
                 <span>active</span><strong id="live-active">0</strong>
