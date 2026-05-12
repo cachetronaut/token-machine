@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from pathlib import Path
+import threading
+import time
 
 from fastapi import APIRouter
 from fastapi.responses import HTMLResponse, JSONResponse, Response
@@ -20,9 +23,37 @@ from token_machine.models import jsonable
 from token_machine.storage.repository import AnalyticsRepository
 
 
-def dashboard_router(store: Path) -> APIRouter:
+class _LiveRefreshScheduler:
+    def __init__(self, targets: Sequence[Path], store: Path) -> None:
+        self._targets = tuple(targets)
+        self._store = store
+        self._lock = threading.Lock()
+        self._running = False
+        self._last_started = 0.0
+
+    def refresh_if_due(self, *, min_interval_seconds: int = 5) -> None:
+        if not self._targets:
+            return
+        now = time.monotonic()
+        with self._lock:
+            if self._running or now - self._last_started < min_interval_seconds:
+                return
+            self._running = True
+            self._last_started = now
+        self._refresh()
+
+    def _refresh(self) -> None:
+        try:
+            refresh_live_snapshots(self._targets, self._store)
+        finally:
+            with self._lock:
+                self._running = False
+
+
+def dashboard_router(store: Path, *, live_targets: Sequence[Path] = ()) -> APIRouter:
     router = APIRouter()
     repository = AnalyticsRepository(store)
+    live_refresh = _LiveRefreshScheduler(live_targets, store)
 
     @router.get("/", response_class=HTMLResponse)
     def index() -> str:
@@ -35,6 +66,7 @@ def dashboard_router(store: Path) -> APIRouter:
 
     @router.get("/api/live")
     def live() -> JSONResponse:
+        live_refresh.refresh_if_due()
         return JSONResponse(jsonable(live_data_from_store(store)))
 
     @router.get("/api/debug/reload")

@@ -166,11 +166,34 @@ def _matching_snapshot(
 
 
 def _claude_rate_limits(payload: Mapping[str, object]) -> list[LiveRateLimit]:
-    rate_limits = _mapping(payload.get("rate_limits"))
+    rate_limits = _first_mapping(
+        payload,
+        (
+            "rate_limits",
+            "rateLimits",
+            "usage_limits",
+            "usageLimits",
+            "limits",
+        ),
+    )
     limits: list[LiveRateLimit] = []
     for name, aliases in {
-        "five_hour": ("five_hour", "5h"),
-        "seven_day": ("seven_day", "7d"),
+        "five_hour": (
+            "five_hour",
+            "fiveHour",
+            "five-hour",
+            "5h",
+            "current",
+            "primary",
+        ),
+        "seven_day": (
+            "seven_day",
+            "sevenDay",
+            "seven-day",
+            "7d",
+            "weekly",
+            "secondary",
+        ),
     }.items():
         limit = _first_mapping(rate_limits, aliases)
         if not limit:
@@ -178,16 +201,46 @@ def _claude_rate_limits(payload: Mapping[str, object]) -> list[LiveRateLimit]:
         limits.append(
             LiveRateLimit(
                 name=name,
-                used_percent=safe_int(
-                    limit.get("used_percentage")
-                    or limit.get("used_percent")
-                    or limit.get("percent")
+                used_percent=_used_percent_from_limit(limit),
+                resets_at=_first_limit_string(
+                    limit,
+                    "resets_at",
+                    "reset_at",
+                    "resetsAt",
+                    "resetAt",
+                    "reset_time",
+                    "resetTime",
                 ),
-                resets_at=str(limit.get("resets_at") or limit.get("reset_at") or ""),
                 origin=LiveSnapshotOrigin.STATUSLINE.value,
             )
         )
     return limits
+
+
+def _used_percent_from_limit(limit: Mapping[str, object]) -> int:
+    used_percent = safe_int(
+        limit.get("used_percentage")
+        or limit.get("used_percent")
+        or limit.get("usedPercentage")
+        or limit.get("usedPercent")
+        or limit.get("percent_used")
+        or limit.get("percentUsed")
+        or limit.get("used")
+    )
+    if used_percent:
+        return used_percent
+    remaining_percent = safe_int(
+        limit.get("remaining_percentage")
+        or limit.get("remaining_percent")
+        or limit.get("remainingPercentage")
+        or limit.get("remainingPercent")
+        or limit.get("percent_remaining")
+        or limit.get("percentRemaining")
+        or limit.get("remaining")
+    )
+    if remaining_percent:
+        return max(0, 100 - remaining_percent)
+    return safe_int(limit.get("percent"))
 
 
 def _session_limits_from_rate_limits(
@@ -304,6 +357,14 @@ def _first_mapping(
         if isinstance(value, Mapping):
             return cast(Mapping[str, object], value)
     return {}
+
+
+def _first_limit_string(payload: Mapping[str, object], *keys: str) -> str:
+    for key in keys:
+        value = payload.get(key)
+        if value is not None:
+            return str(value)
+    return ""
 
 
 def _mapping(value: object) -> Mapping[str, object]:

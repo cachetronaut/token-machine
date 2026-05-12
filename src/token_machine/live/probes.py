@@ -28,6 +28,7 @@ from token_machine.sources.gemini import _gemini_command_from_tool, _gemini_proj
 from token_machine.utils.time import utc_now
 
 SESSION_NAME_MAX = 86
+CLAUDE_CONTEXT_WINDOW_TOKENS = 200_000
 _UUID_RE = re.compile(
     r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
     re.I,
@@ -123,6 +124,7 @@ def codex_snapshot(
     visible_tools = sorted(
         tool_calls.values(), key=lambda item: item.updated_at or item.started_at
     )[-8:]
+    rate_limits = _codex_rate_limits(objects)
     return LiveUsageSnapshot(
         source=AgentSource.CODEX,
         session_id=session_id,
@@ -147,8 +149,8 @@ def codex_snapshot(
             "tools_seen": tools_seen,
         },
         live_tool_calls=visible_tools,
-        rate_limits=_codex_rate_limits(objects),
-        session_limits=_session_limits_from_rate_limits(_codex_rate_limits(objects)),
+        rate_limits=rate_limits,
+        session_limits=_session_limits_from_rate_limits(rate_limits),
         compaction=compaction,
         token_usage=latest_usage,
         origin=LiveSnapshotOrigin.TRANSCRIPT.value,
@@ -217,7 +219,9 @@ def claude_snapshot(
         observed_at=utc_now(),
         status=LiveProbeStatus.ACTIVE,
         user_queries={"count": user_count, "last_at": last_user_at},
-        context=_context_from_usage(latest_usage),
+        context=_context_from_usage(
+            latest_usage, window_tokens=CLAUDE_CONTEXT_WINDOW_TOKENS
+        ),
         current_metrics={
             **_metrics(latest_usage, session_total, len(objects), len(tools)),
             "subagent_sessions": subagent_sessions,
@@ -304,7 +308,6 @@ def gemini_snapshot(
 
 
 def _codex_rate_limits(objects: Sequence[Mapping[str, object]]) -> list[LiveRateLimit]:
-    rate_limits: list[LiveRateLimit] = []
     for obj in reversed(objects):
         payload = mapping_value(obj, "payload")
         if string_value(obj, "type") != "event_msg":
@@ -312,6 +315,7 @@ def _codex_rate_limits(objects: Sequence[Mapping[str, object]]) -> list[LiveRate
         if string_value(payload, "type") != "token_count":
             continue
         raw_rate_limits = mapping_value(payload, "rate_limits")
+        rate_limits: list[LiveRateLimit] = []
         for name in ("primary", "secondary", "credits"):
             limit = mapping_value(raw_rate_limits, name)
             if not limit:
@@ -319,11 +323,7 @@ def _codex_rate_limits(objects: Sequence[Mapping[str, object]]) -> list[LiveRate
             rate_limits.append(
                 LiveRateLimit(
                     name=name,
-                    used_percent=safe_int(
-                        limit.get("used_percentage")
-                        or limit.get("percent")
-                        or limit.get("used_percent")
-                    ),
+                    used_percent=_used_percent_from_limit(limit),
                     resets_at=str(
                         limit.get("resets_at") or limit.get("reset_at") or ""
                     ),
@@ -332,8 +332,9 @@ def _codex_rate_limits(objects: Sequence[Mapping[str, object]]) -> list[LiveRate
                     origin=LiveSnapshotOrigin.TRANSCRIPT.value,
                 )
             )
-        break
-    return rate_limits
+        if rate_limits:
+            return rate_limits
+    return []
 
 
 def _session_limits_from_rate_limits(
@@ -353,6 +354,26 @@ def _session_limits_from_rate_limits(
     return limits
 
 
+def _used_percent_from_limit(limit: Mapping[str, object]) -> int:
+    used_percent = safe_int(
+        limit.get("used_percentage")
+        or limit.get("used_percent")
+        or limit.get("percent_used")
+        or limit.get("used")
+    )
+    if used_percent:
+        return used_percent
+    remaining_percent = safe_int(
+        limit.get("remaining_percentage")
+        or limit.get("remaining_percent")
+        or limit.get("percent_remaining")
+        or limit.get("remaining")
+    )
+    if remaining_percent:
+        return max(0, 100 - remaining_percent)
+    return safe_int(limit.get("percent"))
+
+
 def _codex_command(payload: Mapping[str, object]) -> str:
     raw_arguments = payload.get("arguments") or payload.get("input")
     if not isinstance(raw_arguments, str):
@@ -370,11 +391,17 @@ def _codex_command(payload: Mapping[str, object]) -> str:
     return clean_command(str(parsed.get("cmd") or parsed.get("command") or ""))
 
 
-def _context_from_usage(usage: TokenUsage) -> LiveContextWindow:
+def _context_from_usage(
+    usage: TokenUsage, *, window_tokens: int = 0
+) -> LiveContextWindow:
+    used_tokens = usage.context_tokens
+    used_percent = int((used_tokens / window_tokens) * 100) if window_tokens else 0
     return LiveContextWindow(
-        used_tokens=usage.context_tokens,
+        window_tokens=window_tokens if used_tokens else 0,
+        used_tokens=used_tokens,
+        used_percent=used_percent,
         origin=LiveSnapshotOrigin.COMPUTED.value
-        if usage.context_tokens
+        if used_tokens
         else LiveSnapshotOrigin.MISSING.value,
     )
 
@@ -422,17 +449,22 @@ def _is_human_claude_prompt(message: Mapping[str, object]) -> bool:
 def _latest_compaction(
     current: LiveCompaction, obj: Mapping[str, object], timestamp: str
 ) -> LiveCompaction:
+    payload = mapping_value(obj, "payload")
     subtype = string_value(obj, "subtype")
-    content = string_value(obj, "content")
+    payload_type = string_value(payload, "type")
+    payload_subtype = string_value(payload, "subtype")
+    content = string_value(obj, "content") or string_value(payload, "content")
     obj_type = string_value(obj, "type")
-    compact_metadata = mapping_value(obj, "compactMetadata")
-    if obj.get("isCompactSummary") is True and current.count:
+    compact_metadata = _compaction_metadata(obj, payload)
+    if _is_compact_summary(obj, payload) and current.count:
         return current
     content_key = content.strip().lower()
     is_compaction = (
         subtype == "compact_boundary"
-        or obj.get("isCompactSummary") is True
+        or payload_subtype == "compact_boundary"
+        or _is_compact_summary(obj, payload)
         or content_key == "conversation compacted"
+        or payload_type in {"context_compacted", "compact", "compaction"}
         or obj_type.lower() in {"compact", "compaction", "compact_boundary"}
     )
     if not is_compaction:
@@ -442,11 +474,43 @@ def _latest_compaction(
         count=count,
         last_at=timestamp or current.last_at,
         trigger=string_value(compact_metadata, "trigger", current.trigger),
-        pre_tokens=safe_int(compact_metadata.get("preTokens")) or current.pre_tokens,
-        post_tokens=safe_int(compact_metadata.get("postTokens")) or current.post_tokens,
-        duration_ms=safe_int(compact_metadata.get("durationMs")) or current.duration_ms,
+        pre_tokens=_metadata_int(compact_metadata, "preTokens", "pre_tokens")
+        or current.pre_tokens,
+        post_tokens=_metadata_int(compact_metadata, "postTokens", "post_tokens")
+        or current.post_tokens,
+        duration_ms=_metadata_int(compact_metadata, "durationMs", "duration_ms")
+        or current.duration_ms,
         origin=LiveSnapshotOrigin.TRANSCRIPT.value,
     )
+
+
+def _is_compact_summary(
+    obj: Mapping[str, object], payload: Mapping[str, object]
+) -> bool:
+    return (
+        obj.get("isCompactSummary") is True or payload.get("isCompactSummary") is True
+    )
+
+
+def _compaction_metadata(
+    obj: Mapping[str, object], payload: Mapping[str, object]
+) -> Mapping[str, object]:
+    for key in ("compactMetadata", "compact_metadata", "compaction"):
+        metadata = mapping_value(obj, key)
+        if metadata:
+            return metadata
+        metadata = mapping_value(payload, key)
+        if metadata:
+            return metadata
+    return {}
+
+
+def _metadata_int(metadata: Mapping[str, object], *keys: str) -> int:
+    for key in keys:
+        value = safe_int(metadata.get(key))
+        if value:
+            return value
+    return 0
 
 
 def _optional_mapping(value: object) -> Mapping[str, object] | None:

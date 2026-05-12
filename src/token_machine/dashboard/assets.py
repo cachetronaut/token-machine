@@ -38,6 +38,7 @@ def dashboard_asset_response(
                 return Response(
                     icon_path.read_text(encoding="utf-8"),
                     media_type=_MEDIA_TYPES["icons"],
+                    headers={"Cache-Control": "no-store"},
                 )
 
     asset = resources.files("token_machine.dashboard").joinpath("assets", kind, name)
@@ -45,6 +46,14 @@ def dashboard_asset_response(
         raise HTTPException(status_code=404)
 
     if kind == "img":
-        return Response(asset.read_bytes(), media_type=_MEDIA_TYPES[kind])
+        return Response(
+            asset.read_bytes(),
+            media_type=_MEDIA_TYPES[kind],
+            headers={"Cache-Control": "no-store"},
+        )
 
-    return Response(asset.read_text(encoding="utf-8"), media_type=_MEDIA_TYPES[kind])
+    return Response(
+        asset.read_text(encoding="utf-8"),
+        media_type=_MEDIA_TYPES[kind],
+        headers={"Cache-Control": "no-store"},
+    )

@@ -73,12 +73,15 @@ def test_fastapi_dashboard_serves_packaged_assets(tmp_path: Path) -> None:
 
     assert css_response.status_code == 200
     assert css_response.headers["content-type"].startswith("text/css")
+    assert css_response.headers["cache-control"] == "no-store"
     assert live_css_response.status_code == 200
     assert "live-console" in live_css_response.text
     assert js_response.status_code == 200
     assert js_response.headers["content-type"].startswith("text/javascript")
+    assert js_response.headers["cache-control"] == "no-store"
     assert icon_response.status_code == 200
     assert icon_response.headers["content-type"].startswith("image/svg+xml")
+    assert icon_response.headers["cache-control"] == "no-store"
     assert zed_response.status_code == 200
     assert zed_response.headers["content-type"].startswith("image/svg+xml")
     assert missing_response.status_code == 404
@@ -139,7 +142,8 @@ def test_dashboard_live_surface_polls_live_api_and_debug_reload() -> None:
     assert "/api/live" in api_js
     assert "/api/debug/reload" in api_js
     assert "startDebugReloadPolling" in dashboard_js
-    assert "window.location.reload" not in api_js
+    assert "script_reload_token" in api_js
+    assert "window.location.reload" in api_js
     assert "live-context-critical" in live_js
     assert "contextUsageLabel" in live_js
     assert "limitDisplayName" in live_js
@@ -148,6 +152,7 @@ def test_dashboard_live_surface_polls_live_api_and_debug_reload() -> None:
     assert "live-tool-agent" in live_js
     assert "subagent_sessions" in live_js
     assert "session_limits" in live_js
+    assert "Session limit pending" not in live_js
     assert "live-signal-compact" in live_js
     assert "live_tool_calls" in live_js
 

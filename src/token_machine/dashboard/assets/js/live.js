@@ -130,7 +130,7 @@ function renderLane(snapshot) {
 }
 
 function renderSessionLimits(sessionLimits) {
-  if (!sessionLimits.length) return '<div class="live-limit-empty">Session limit pending</div>';
+  if (!sessionLimits.length) return "";
   return `
     <div class="live-rate-row">
       ${sessionLimits

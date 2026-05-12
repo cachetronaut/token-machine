@@ -1,13 +1,20 @@
-import { fetchLive, fetchSummary, startDebugReloadPolling, startPolling } from "./api.js";
+import {
+  fetchLive,
+  fetchSummary,
+  livePollMs,
+  startDebugReloadPolling,
+  startPolling,
+  summaryPollMs,
+} from "./api.js";
 import { renderChart, renderModelDistribution } from "./charts.js";
 import { metric, text } from "./format.js";
 import { renderLive, renderLiveError } from "./live.js";
 import { renderAppLegend, renderBars, renderModelProfiles } from "./models.js";
 import { renderSessions } from "./sessions.js";
 
-async function refresh() {
+async function refresh(signal) {
   try {
-    const data = await fetchSummary();
+    const data = await fetchSummary({ signal });
     const summary = data.summary;
     metric("sessions", summary.sessions);
     metric("events", summary.event_count);
@@ -41,20 +48,22 @@ async function refresh() {
     });
     text("status", `Live · updated ${updatedAt}`);
   } catch (error) {
+    if (error?.name === "AbortError") return;
     text("status", "Disconnected");
   }
 }
 
-async function refreshLive() {
+async function refreshLive(signal) {
   try {
-    renderLive(await fetchLive());
+    renderLive(await fetchLive({ signal }));
   } catch (error) {
+    if (error?.name === "AbortError") return;
     renderLiveError();
   }
 }
 
-startPolling(refresh);
-startPolling(refreshLive);
+startPolling(refresh, { intervalMs: summaryPollMs });
+startPolling(refreshLive, { intervalMs: livePollMs });
 startDebugReloadPolling(() => {
   refresh();
   refreshLive();

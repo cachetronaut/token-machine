@@ -123,8 +123,7 @@ def serve(
         skipped = sum(result.status == IngestStatus.SKIPPED for result in results)
         errors = sum(result.status == IngestStatus.ERROR for result in results)
         typer.echo(f"Initial ingest: {ok} file(s), skipped {skipped}, errors {errors}.")
-    live_data = refresh_live_snapshots(DEFAULT_WATCH_PATHS, store)
-    typer.echo(f"Live snapshots: {live_data.active_count} active.")
+    typer.echo("Live snapshots refresh after the dashboard connects.")
     if watch:
         start_watch_loop(list(DEFAULT_WATCH_PATHS), store, watch_interval)
         start_live_loop(list(DEFAULT_WATCH_PATHS), store, live_interval)
@@ -132,7 +131,15 @@ def serve(
         typer.echo(f"Watching {joined} every {max(5, watch_interval)} seconds")
         typer.echo(f"Refreshing live snapshots every {max(2, live_interval)} seconds")
     typer.echo(f"Serving Token Machine at http://{host}:{port}/")
-    uvicorn.run(create_app(store), host=host, port=port, log_level="debug")
+    app_live_targets = () if watch else DEFAULT_WATCH_PATHS
+    uvicorn.run(
+        create_app(store, live_targets=app_live_targets),
+        host=host,
+        port=port,
+        log_level="debug",
+        timeout_graceful_shutdown=1,
+        timeout_keep_alive=1,
+    )
 
 
 @app.command()
