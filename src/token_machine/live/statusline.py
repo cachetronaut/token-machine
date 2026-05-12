@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import json
+import re
+import shlex
 import subprocess
 from dataclasses import replace
 from pathlib import Path
@@ -22,6 +24,8 @@ from token_machine.models import AgentSource, safe_int
 from token_machine.sources.base import session_id_from_path
 from token_machine.utils.time import utc_now
 
+ANSI_PATTERN = re.compile(r"\x1b\[[0-?]*[ -/]*[@-~]")
+
 
 def capture_claude_statusline(
     payload: Mapping[str, object],
@@ -38,6 +42,66 @@ def capture_claude_statusline(
     )
     live_store.write_snapshot(snapshot)
     return snapshot
+
+
+def capture_claude_statusline_carrier(
+    payload: Mapping[str, object],
+    store: Path = DEFAULT_STORE,
+) -> LiveUsageSnapshot:
+    """Persist a Claude statusline carrier snapshot without merging transcripts."""
+    live_store = LiveUsageStore(store)
+    statusline_snapshot = claude_statusline_snapshot(_carrier_payload(payload))
+    live_store.write_snapshot(statusline_snapshot)
+    return statusline_snapshot
+
+
+def capture_configured_claude_statusline(
+    claude_root: Path,
+    store: Path = DEFAULT_STORE,
+    *,
+    payload: Mapping[str, object] | None = None,
+    timeout_seconds: float = 2.0,
+) -> LiveUsageSnapshot | None:
+    command = configured_claude_statusline_script(claude_root)
+    if command is None:
+        return None
+    input_text = json.dumps(payload or {})
+    try:
+        completed = subprocess.run(  # noqa: S603 - command is resolved to local .sh.
+            command,
+            input=input_text,
+            text=True,
+            capture_output=True,
+            check=False,
+            timeout=timeout_seconds,
+        )
+    except OSError, subprocess.TimeoutExpired:
+        return None
+    statusline_payload = _payload_from_statusline_output(
+        completed.stdout, payload or {}
+    )
+    if statusline_payload is None:
+        return None
+    return capture_claude_statusline_carrier(statusline_payload, store)
+
+
+def configured_claude_statusline_script(claude_root: Path) -> list[str] | None:
+    for settings_path in _claude_settings_paths(claude_root):
+        try:
+            settings = json.loads(settings_path.read_text(encoding="utf-8"))
+        except OSError, json.JSONDecodeError:
+            continue
+        if not isinstance(settings, Mapping):
+            continue
+        command = _configured_statusline_command(settings)
+        if not command:
+            continue
+        script_command = _script_command_from_configured_command(
+            command, settings_path.parent
+        )
+        if script_command is not None:
+            return script_command
+    return None
 
 
 def claude_statusline_snapshot(payload: Mapping[str, object]) -> LiveUsageSnapshot:
@@ -81,6 +145,137 @@ def run_chained_statusline(command: Sequence[str], input_text: str) -> int:
         check=False,
     )
     return completed.returncode
+
+
+def _claude_settings_paths(claude_root: Path) -> tuple[Path, ...]:
+    return (
+        claude_root.expanduser() / "settings.local.json",
+        claude_root.expanduser() / "settings.json",
+    )
+
+
+def _carrier_payload(payload: Mapping[str, object]) -> dict[str, object]:
+    output = dict(payload)
+    for key in (
+        "transcript_path",
+        "transcriptPath",
+        "session_id",
+        "sessionId",
+        "session",
+        "conversation",
+    ):
+        output.pop(key, None)
+    return output
+
+
+def _configured_statusline_command(settings: Mapping[str, object]) -> str:
+    statusline = _mapping(settings.get("statusLine")) or _mapping(
+        settings.get("statusline")
+    )
+    if statusline.get("type") not in {"command", None}:
+        return ""
+    command = statusline.get("command")
+    return command if isinstance(command, str) else ""
+
+
+def _script_command_from_configured_command(
+    command: str, base_dir: Path
+) -> list[str] | None:
+    try:
+        parts = shlex.split(command)
+    except ValueError:
+        return None
+    if not parts:
+        return None
+    chain = _chain_command(parts)
+    if chain:
+        return _script_command_from_configured_command(chain, base_dir)
+    return _local_shell_script_command(parts, base_dir)
+
+
+def _chain_command(parts: Sequence[str]) -> str:
+    for index, part in enumerate(parts):
+        if part == "--chain" and index + 1 < len(parts):
+            return parts[index + 1]
+        if part.startswith("--chain="):
+            return part.partition("=")[2]
+    return ""
+
+
+def _local_shell_script_command(
+    parts: Sequence[str], base_dir: Path
+) -> list[str] | None:
+    if len(parts) == 1:
+        script = _local_shell_script(parts[0], base_dir)
+        return [str(script)] if script is not None else None
+    if len(parts) == 2 and parts[0] in {"sh", "bash"}:
+        script = _local_shell_script(parts[1], base_dir)
+        return [parts[0], str(script)] if script is not None else None
+    return None
+
+
+def _local_shell_script(raw_path: str, base_dir: Path) -> Path | None:
+    if not raw_path.endswith(".sh"):
+        return None
+    path = Path(raw_path).expanduser()
+    if not path.is_absolute():
+        path = base_dir / path
+    try:
+        resolved = path.resolve(strict=True)
+    except OSError:
+        return None
+    if not resolved.is_file():
+        return None
+    return resolved
+
+
+def _payload_from_statusline_output(
+    output: str, base_payload: Mapping[str, object]
+) -> Mapping[str, object] | None:
+    parsed = _json_payload_from_output(output)
+    if parsed is not None:
+        return {**base_payload, **parsed}
+    parsed = _text_payload_from_output(output)
+    if parsed is None:
+        return None
+    return {**base_payload, **parsed}
+
+
+def _json_payload_from_output(output: str) -> Mapping[str, object] | None:
+    text = output.strip()
+    if not text:
+        return None
+    try:
+        data = json.loads(text)
+    except json.JSONDecodeError:
+        return None
+    return cast(Mapping[str, object], data) if isinstance(data, Mapping) else None
+
+
+def _text_payload_from_output(output: str) -> Mapping[str, object] | None:
+    text = ANSI_PATTERN.sub("", output)
+    rate_limits: dict[str, dict[str, int]] = {}
+    five_hour = _first_percent_after(text, ("⚡", "5h", "five"))
+    if five_hour is not None:
+        rate_limits["five_hour"] = {"used_percentage": five_hour}
+    seven_day = _first_percent_after(text, ("✌", "7d", "seven"))
+    if seven_day is not None:
+        rate_limits["seven_day"] = {"used_percentage": seven_day}
+    if not rate_limits:
+        return None
+    return {"rate_limits": rate_limits}
+
+
+def _first_percent_after(text: str, markers: Sequence[str]) -> int | None:
+    for marker in markers:
+        position = text.lower().find(marker.lower())
+        if position < 0:
+            continue
+        match = re.search(r"(\d{1,3})\s*%", text[position:])
+        if match is None:
+            continue
+        return min(100, max(0, int(match.group(1))))
+    return None
 
 
 def _merge_statusline_snapshot(
@@ -218,29 +413,40 @@ def _claude_rate_limits(payload: Mapping[str, object]) -> list[LiveRateLimit]:
 
 
 def _used_percent_from_limit(limit: Mapping[str, object]) -> int:
-    used_percent = safe_int(
-        limit.get("used_percentage")
-        or limit.get("used_percent")
-        or limit.get("usedPercentage")
-        or limit.get("usedPercent")
-        or limit.get("percent_used")
-        or limit.get("percentUsed")
-        or limit.get("used")
+    used_percent = _first_limit_int(
+        limit,
+        "used_percentage",
+        "used_percent",
+        "usedPercentage",
+        "usedPercent",
+        "percent_used",
+        "percentUsed",
+        "used",
     )
-    if used_percent:
+    if used_percent is not None:
         return used_percent
-    remaining_percent = safe_int(
-        limit.get("remaining_percentage")
-        or limit.get("remaining_percent")
-        or limit.get("remainingPercentage")
-        or limit.get("remainingPercent")
-        or limit.get("percent_remaining")
-        or limit.get("percentRemaining")
-        or limit.get("remaining")
+    remaining_percent = _first_limit_int(
+        limit,
+        "remaining_percentage",
+        "remaining_percent",
+        "remainingPercentage",
+        "remainingPercent",
+        "percent_remaining",
+        "percentRemaining",
+        "remaining",
     )
-    if remaining_percent:
+    if remaining_percent is not None:
         return max(0, 100 - remaining_percent)
     return safe_int(limit.get("percent"))
+
+
+def _first_limit_int(limit: Mapping[str, object], *keys: str) -> int | None:
+    for key in keys:
+        value = limit.get(key)
+        if value is None or value == "":
+            continue
+        return safe_int(value)
+    return None
 
 
 def _session_limits_from_rate_limits(

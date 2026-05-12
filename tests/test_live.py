@@ -23,6 +23,30 @@ from token_machine.models import AgentSource, TokenUsage
 from token_machine.utils.time import utc_now
 
 
+def _write_claude_live_session(claude_root: Path) -> Path:
+    session_path = claude_root / "projects" / "project" / "c1.jsonl"
+    session_path.parent.mkdir(parents=True)
+    session_path.write_text(
+        "\n".join(
+            [
+                (
+                    f'{{"sessionId":"c1","cwd":"/work/project",'
+                    f'"timestamp":"{utc_now()}","message":{{"role":"user",'
+                    '"content":"hello"}}}'
+                ),
+                (
+                    f'{{"sessionId":"c1","cwd":"/work/project",'
+                    f'"timestamp":"{utc_now()}","message":{{"role":"assistant",'
+                    '"model":"claude-opus-4-7","usage":{"input_tokens":10,'
+                    '"output_tokens":5}}}'
+                ),
+            ]
+        ),
+        encoding="utf-8",
+    )
+    return session_path
+
+
 def test_codex_live_snapshot_extracts_context_queries_and_current_tools() -> None:
     snapshot = codex_snapshot(
         Path("/tmp/.codex/sessions/session.jsonl"),
@@ -416,6 +440,215 @@ def test_claude_statusline_capture_merges_transcript_snapshot(tmp_path: Path) ->
     assert snapshot.context.used_percent == 75
     assert snapshot.session_limits[0].remaining_percent == 40
     assert snapshot.origin == "statusline"
+
+
+def test_refresh_live_snapshots_invokes_configured_claude_statusline_json(
+    tmp_path: Path,
+) -> None:
+    claude_root = tmp_path / ".claude"
+    _write_claude_live_session(claude_root)
+    script_path = claude_root / "statusline.sh"
+    script_path.write_text(
+        "\n".join(
+            [
+                "#!/usr/bin/env sh",
+                "cat >/dev/null",
+                (
+                    "printf '%s\\n' "
+                    '\'{"workspace":{"current_dir":"/work/project"},'
+                    '"rate_limits":{"five_hour":{"remaining_percent":72},'
+                    '"seven_day":{"used_percentage":20}}}\''
+                ),
+            ]
+        ),
+        encoding="utf-8",
+    )
+    (claude_root / "settings.json").write_text(
+        json.dumps({"statusLine": {"type": "command", "command": f"sh {script_path}"}}),
+        encoding="utf-8",
+    )
+
+    store_path = tmp_path / "store"
+    data = refresh_live_snapshots([claude_root], store_path)
+    stored = LiveUsageStore(store_path).load_snapshots()
+
+    assert len(data.snapshots) == 1
+    assert data.snapshots[0].session_id == "c1"
+    assert data.snapshots[0].session_limits[0].remaining_percent == 72
+    assert data.snapshots[0].session_limits[1].remaining_percent == 80
+    assert any(
+        snapshot.source_path.startswith("claude-statusline:")
+        and snapshot.origin == LiveSnapshotOrigin.STATUSLINE.value
+        for snapshot in stored
+    )
+
+
+def test_refresh_live_snapshots_parses_configured_claude_statusline_text(
+    tmp_path: Path,
+) -> None:
+    claude_root = tmp_path / ".claude"
+    session_path = _write_claude_live_session(claude_root)
+    store_path = tmp_path / "store"
+    capture_claude_statusline(
+        {
+            "session_id": "c1",
+            "transcript_path": str(session_path),
+            "workspace": {"current_dir": "/work/project"},
+            "rate_limits": {
+                "five_hour": {"used_percentage": 64},
+                "seven_day": {"used_percentage": 11},
+            },
+        },
+        store_path,
+    )
+    script_path = claude_root / "statusline.sh"
+    script_path.write_text(
+        "\n".join(
+            [
+                "#!/usr/bin/env sh",
+                "input=$(cat)",
+                'case "$input" in',
+                '  *rate_limits*) printf "\\033[1;91m⚡︎ ██████ 64%%\\033[0m\\n✌︎ ██ 11%%\\n" ;;',
+                "esac",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    (claude_root / "settings.json").write_text(
+        json.dumps(
+            {
+                "statusLine": {
+                    "type": "command",
+                    "command": (
+                        "uv run token-machine claude-statusline "
+                        f'--chain "sh {script_path}"'
+                    ),
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    data = refresh_live_snapshots([claude_root], store_path)
+
+    assert len(data.snapshots) == 1
+    assert data.snapshots[0].session_limits[0].remaining_percent == 36
+    assert data.snapshots[0].session_limits[1].remaining_percent == 89
+
+
+def test_refresh_live_snapshots_does_not_invent_configured_claude_limits(
+    tmp_path: Path,
+) -> None:
+    claude_root = tmp_path / ".claude"
+    _write_claude_live_session(claude_root)
+    script_path = claude_root / "statusline.sh"
+    script_path.write_text(
+        "\n".join(
+            [
+                "#!/usr/bin/env sh",
+                "input=$(cat)",
+                'case "$input" in',
+                '  *rate_limits*) printf "⚡ 64%%\\n✌ 11%%\\n" ;;',
+                "esac",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    (claude_root / "settings.json").write_text(
+        json.dumps({"statusLine": {"type": "command", "command": f"sh {script_path}"}}),
+        encoding="utf-8",
+    )
+
+    data = refresh_live_snapshots([claude_root], tmp_path / "store")
+
+    assert len(data.snapshots) == 1
+    assert not data.snapshots[0].session_limits
+
+
+def test_refresh_live_snapshots_throttles_claude_statusline_invocation(
+    tmp_path: Path,
+) -> None:
+    claude_root = tmp_path / ".claude"
+    _write_claude_live_session(claude_root)
+    marker_path = tmp_path / "statusline-runs"
+    script_path = claude_root / "statusline.sh"
+    script_path.write_text(
+        "\n".join(
+            [
+                "#!/usr/bin/env sh",
+                f"printf x >> {marker_path}",
+                (
+                    "printf '%s\\n' "
+                    '\'{"rate_limits":{"five_hour":{"remaining_percent":72}}}\''
+                ),
+            ]
+        ),
+        encoding="utf-8",
+    )
+    (claude_root / "settings.json").write_text(
+        json.dumps({"statusLine": {"type": "command", "command": f"sh {script_path}"}}),
+        encoding="utf-8",
+    )
+    store_path = tmp_path / "store"
+
+    refresh_live_snapshots([claude_root], store_path)
+    refresh_live_snapshots([claude_root], store_path)
+
+    assert marker_path.read_text(encoding="utf-8") == "x"
+
+
+def test_refresh_live_snapshots_does_not_invoke_statusline_for_codex_target(
+    tmp_path: Path,
+) -> None:
+    codex_root = tmp_path / ".codex"
+    session_path = codex_root / "sessions" / "session.jsonl"
+    session_path.parent.mkdir(parents=True)
+    session_path.write_text(
+        '{"type":"session_meta","timestamp":"2026-05-11T10:00:00Z",'
+        '"payload":{"id":"s1","cwd":"/work/project"}}\n',
+        encoding="utf-8",
+    )
+    claude_root = tmp_path / ".claude"
+    claude_root.mkdir()
+    marker_path = tmp_path / "statusline-runs"
+    script_path = claude_root / "statusline.sh"
+    script_path.write_text(
+        "\n".join(["#!/usr/bin/env sh", f"printf x >> {marker_path}"]),
+        encoding="utf-8",
+    )
+    (claude_root / "settings.json").write_text(
+        json.dumps({"statusLine": {"type": "command", "command": f"sh {script_path}"}}),
+        encoding="utf-8",
+    )
+
+    refresh_live_snapshots([codex_root], tmp_path / "store")
+
+    assert not marker_path.exists()
+
+
+def test_refresh_live_snapshots_rejects_inline_claude_statusline_shell_text(
+    tmp_path: Path,
+) -> None:
+    claude_root = tmp_path / ".claude"
+    _write_claude_live_session(claude_root)
+    marker_path = tmp_path / "statusline-runs"
+    (claude_root / "settings.json").write_text(
+        json.dumps(
+            {
+                "statusLine": {
+                    "type": "command",
+                    "command": f"printf x > {marker_path}",
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    data = refresh_live_snapshots([claude_root], tmp_path / "store")
+
+    assert not marker_path.exists()
+    assert len(data.snapshots) == 1
+    assert not data.snapshots[0].session_limits
 
 
 def test_live_data_applies_latest_claude_limits_to_transcript_snapshots() -> None:
