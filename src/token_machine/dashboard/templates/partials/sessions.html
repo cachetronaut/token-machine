@@ -1,10 +1,18 @@
-<section class="card">
-  <div class="chart-head">
-    <h2>Recent sessions</h2>
-    <div class="head-right">
-      <div class="app-legend" id="app-legend"></div>
-      <span class="eyebrow" id="session-count">0 shown</span>
-    </div>
-  </div>
-  <div class="timeline" id="recent-sessions"></div>
+<section class="dashboard-section section-collapsed" id="recent-sessions-section">
+  <button
+    class="section-strip"
+    type="button"
+    data-section-toggle="recent-sessions-section"
+    aria-expanded="false"
+    aria-controls="recent-sessions"
+  >
+    <span class="live-toggle-icon" aria-hidden="true"></span>
+    <span class="section-led" aria-hidden="true"></span>
+    <span class="section-copy">
+      <span class="section-title">Recent sessions</span>
+      <span class="section-subline"><span id="session-count">0 shown</span></span>
+    </span>
+    <span class="app-legend section-legend" id="app-legend"></span>
+  </button>
+  <div class="timeline session-feed section-body" id="recent-sessions"></div>
 </section>

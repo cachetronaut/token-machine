@@ -10,6 +10,7 @@ import { renderChart, renderModelDistribution } from "./charts.js";
 import { metric, text } from "./format.js";
 import { renderLive, renderLiveError } from "./live.js";
 import { renderAppLegend, renderBars, renderModelProfiles } from "./models.js";
+import { initSectionToggles } from "./sections.js";
 import { renderSessions } from "./sessions.js";
 
 async function refresh(signal) {
@@ -68,3 +69,4 @@ startDebugReloadPolling(() => {
   refresh();
   refreshLive();
 });
+initSectionToggles();

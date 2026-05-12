@@ -1,7 +1,17 @@
-<section>
-  <div class="chart-head">
-    <h2>Model cards</h2>
-    <span class="eyebrow">Aggregated usage by model</span>
-  </div>
-  <div class="model-grid" id="model-profiles"></div>
+<section class="dashboard-section section-collapsed" id="model-cards-section">
+  <button
+    class="section-strip"
+    type="button"
+    data-section-toggle="model-cards-section"
+    aria-expanded="false"
+    aria-controls="model-profiles"
+  >
+    <span class="live-toggle-icon" aria-hidden="true"></span>
+    <span class="section-led" aria-hidden="true"></span>
+    <span class="section-copy">
+      <span class="section-title">Model cards</span>
+      <span class="section-subline">Aggregated usage by model</span>
+    </span>
+  </button>
+  <div class="model-grid section-body" id="model-profiles"></div>
 </section>

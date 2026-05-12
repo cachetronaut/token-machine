@@ -119,6 +119,115 @@ header .logo {
     gap: 8px;
 }
 
+.dashboard-section {
+    position: relative;
+    margin-bottom: 12px;
+    overflow: hidden;
+    border: 1px solid var(--surface-border);
+    border-radius: 8px;
+    background:
+        linear-gradient(90deg, rgba(67, 199, 183, .065), transparent 24%),
+        linear-gradient(180deg, var(--surface-top), var(--surface-bottom));
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .04);
+}
+
+.dashboard-section::before {
+    position: absolute;
+    inset: 0;
+    background-image:
+        linear-gradient(var(--surface-grid) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, .016) 1px, transparent 1px);
+    background-size: 26px 26px;
+    content: "";
+    pointer-events: none;
+}
+
+.dashboard-section > * {
+    position: relative;
+}
+
+.section-strip {
+    display: flex;
+    width: 100%;
+    min-width: 0;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+    border: 0;
+    border-bottom: 1px solid rgba(255, 255, 255, .07);
+    background: linear-gradient(90deg, rgba(67, 199, 183, .05), transparent 36%);
+    color: inherit;
+    cursor: pointer;
+    font: inherit;
+    text-align: left;
+}
+
+.section-strip:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--teal), white 18%);
+    outline-offset: -4px;
+}
+
+.section-led {
+    width: 9px;
+    height: 34px;
+    flex: 0 0 auto;
+    border-radius: 999px;
+    background: var(--green);
+    box-shadow: 0 0 18px rgba(88, 214, 141, .58);
+}
+
+.section-copy {
+    display: grid;
+    min-width: 0;
+    gap: 3px;
+}
+
+.section-title {
+    overflow: hidden;
+    font-size: 16px;
+    font-weight: 800;
+    line-height: 1.05;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.section-subline {
+    overflow: hidden;
+    color: var(--muted);
+    font-size: 12px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.section-legend {
+    margin-left: auto;
+}
+
+.section-body {
+    transition:
+        max-height .26s ease,
+        opacity .2s ease,
+        padding-top .2s ease,
+        padding-bottom .2s ease;
+}
+
+.section-collapsed .section-body {
+    max-height: 0;
+    opacity: 0;
+    overflow: hidden;
+    padding-top: 0;
+    padding-bottom: 0;
+}
+
+.section-open .section-body {
+    max-height: 2200px;
+    opacity: 1;
+}
+
+.section-open .live-toggle-icon {
+    transform: rotate(45deg) translateY(-1px);
+}
+
 .rankings {
     display: grid;
     grid-template-columns: minmax(0, 1fr);

@@ -1,34 +1,39 @@
 .timeline {
+  --timeline-dot-size: 9px;
+  --timeline-rail-left: 25px;
+  --timeline-row-left: 40px;
+  --timeline-dot-center-y: 16px;
   position: relative;
   display: grid;
-  gap: 10px;
-  padding-left: 28px;
+  gap: 8px;
+  padding: 12px 14px 12px var(--timeline-row-left);
 }
 
 .timeline::before {
   position: absolute;
-  top: 6px;
-  bottom: 6px;
-  left: 14px;
+  top: calc(12px + var(--timeline-dot-center-y));
+  bottom: 18px;
+  left: var(--timeline-rail-left);
   width: 1px;
-  background: var(--line);
+  background: color-mix(in srgb, var(--blue), var(--line) 60%);
   content: "";
+  transform: translateX(-.5px);
 }
 
 .timeline-item {
   position: relative;
   display: grid;
-  grid-template-columns: 92px minmax(0, 1fr);
+  grid-template-columns: 94px minmax(0, 1fr);
   align-items: start;
-  gap: 12px;
+  gap: 10px;
 }
 
 .timeline-item::before {
   position: absolute;
-  top: 10px;
-  left: -19px;
-  width: 10px;
-  height: 10px;
+  top: calc(var(--timeline-dot-center-y) - (var(--timeline-dot-size) / 2));
+  left: calc(var(--timeline-rail-left) - var(--timeline-row-left) - (var(--timeline-dot-size) / 2));
+  width: var(--timeline-dot-size);
+  height: var(--timeline-dot-size);
   border-radius: 50%;
   background: var(--project-color);
   box-shadow: 0 0 16px var(--project-color);
@@ -43,12 +48,12 @@
 
 .timeline-card {
   display: grid;
-  gap: 6px;
-  padding: 9px 10px;
-  border: 1px solid color-mix(in srgb, var(--project-color), var(--line) 55%);
-  border-left: 4px solid var(--project-color);
-  border-radius: 8px;
-  background: linear-gradient(90deg, color-mix(in srgb, var(--project-color), transparent 86%), var(--panel-2) 56%);
+  min-width: 0;
+  gap: 4px;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--project-color), transparent 91%), transparent 72%);
 }
 
 .timeline-main {
@@ -60,7 +65,9 @@
 
 .timeline-project {
   overflow: hidden;
-  font-weight: 680;
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1.1;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -83,7 +90,82 @@
   font-weight: 700;
 }
 
-.sessions { overflow-x: auto; }
+.session-feed {
+  overflow-x: auto;
+}
+
+.session-item-current::before {
+  animation: session-dot-pulse 1.4s ease-out infinite;
+}
+
+.session-item-new {
+  animation: session-slide-in .26s ease-out both;
+}
+
+.session-item-new .session-copy {
+  overflow: hidden;
+  white-space: nowrap;
+  animation: session-type-in .7s steps(38, end) both;
+}
+
+.session-item-new .flip-count {
+  display: inline-block;
+  animation: flip-count .48s ease-out both;
+  transform-origin: 50% 55%;
+}
+
+.flip-count {
+  color: #f4f7fb;
+  font-weight: 780;
+}
+
+@keyframes session-dot-pulse {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--project-color), transparent 32%);
+  }
+
+  70% {
+    box-shadow: 0 0 0 8px color-mix(in srgb, var(--project-color), transparent 100%);
+  }
+
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--project-color), transparent 100%);
+  }
+}
+
+@keyframes session-slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes session-type-in {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+@keyframes flip-count {
+  0% {
+    opacity: .45;
+    transform: rotateX(88deg) translateY(-2px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: rotateX(0deg) translateY(0);
+  }
+}
 
 @media (max-width: 920px) {
   .timeline-item {
