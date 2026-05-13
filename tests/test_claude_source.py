@@ -79,3 +79,36 @@ def test_claude_parser_captures_dynamic_tool_descriptions() -> None:
     assert tool_call.tool_description == "Verify imports are clean"
     # Note: The source parser keeps raw casing, the metrics layer lowercases it.
     assert tool_call.command == 'uv run python -c "print(1)"'
+
+
+def test_claude_parser_promotes_skill_tool_to_skill_call() -> None:
+    source = ClaudeSource()
+    events = source.parse(
+        Path("/tmp/.claude/session.jsonl"),
+        [
+            {
+                "sessionId": "c3",
+                "timestamp": "2026-05-08T10:00:00Z",
+                "message": {
+                    "role": "assistant",
+                    "content": [
+                        {
+                            "type": "tool_use",
+                            "id": "toolu_01",
+                            "name": "Skill",
+                            "input": {
+                                "skill": "pause-framework",
+                                "args": "Plan the dashboard change",
+                            },
+                        }
+                    ],
+                },
+            },
+        ],
+    )
+
+    skill_call = next(e for e in events if e.event_type == EventType.SKILL_CALL)
+
+    assert skill_call.skill_name == "pause-framework"
+    assert skill_call.skill_description == "Plan the dashboard change"
+    assert not any(e.event_type == EventType.TOOL_CALL for e in events)

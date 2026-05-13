@@ -40,7 +40,8 @@ async function refresh(signal) {
     renderModelDistribution(summary.models);
     renderAppLegend(summary.sources);
     renderBars("tools", summary.tools, true, summary.descriptions);
-    renderBars("clis", summary.clis, true, summary.descriptions);
+    renderBars("skills", summary.skills || {}, true, summary.descriptions);
+    renderBars("executables", summary.executables || summary.clis, true, summary.descriptions);
     renderModelProfiles(data.model_profiles);
     renderSessions(data.recent_sessions);
     const updatedAt = new Date(data.generated_at).toLocaleTimeString([], {

@@ -499,6 +499,16 @@
     box-shadow: 0 0 14px rgba(246, 196, 83, .58);
 }
 
+.live-tool-skill .live-tool-dot {
+    background: var(--teal);
+    box-shadow: 0 0 14px rgba(67, 199, 183, .58);
+}
+
+.live-tool-command .live-tool-dot {
+    background: #8c7cff;
+    box-shadow: 0 0 14px rgba(140, 124, 255, .58);
+}
+
 .live-tool-copy {
     min-width: 0;
 }

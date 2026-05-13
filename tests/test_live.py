@@ -10,6 +10,7 @@ from token_machine.live.models import (
     LiveProbeStatus,
     LiveSnapshotOrigin,
     LiveUsageSnapshot,
+    snapshot_from_mapping,
 )
 from token_machine.live.models import LiveSessionLimit
 from token_machine.live.probes import claude_snapshot, codex_snapshot, gemini_snapshot
@@ -45,6 +46,26 @@ def _write_claude_live_session(claude_root: Path) -> Path:
         encoding="utf-8",
     )
     return session_path
+
+
+def test_live_snapshot_mapping_backfills_actions_from_tool_calls() -> None:
+    snapshot = snapshot_from_mapping(
+        {
+            "source": "codex",
+            "session_id": "s1",
+            "source_path": "/tmp/session.jsonl",
+            "live_tool_calls": [
+                {
+                    "name": "exec_command",
+                    "status": "complete",
+                    "command": "uv run pytest",
+                }
+            ],
+        }
+    )
+
+    assert snapshot.live_actions[0].kind == "tool"
+    assert snapshot.live_actions[0].executable == "uv"
 
 
 def test_codex_live_snapshot_extracts_context_queries_and_current_tools() -> None:
@@ -107,6 +128,31 @@ def test_codex_live_snapshot_extracts_context_queries_and_current_tools() -> Non
     assert snapshot.live_tool_calls[0].status == "current"
     assert snapshot.live_tool_calls[0].command == "uv run pytest"
     assert snapshot.rate_limits[0].used_percent == 25
+
+
+def test_codex_live_snapshot_marks_skill_file_reads_as_skill_actions() -> None:
+    snapshot = codex_snapshot(
+        Path("/tmp/.codex/sessions/session.jsonl"),
+        [
+            {
+                "type": "response_item",
+                "timestamp": "2026-05-13T17:12:56.122Z",
+                "payload": {
+                    "type": "function_call",
+                    "call_id": "call-1",
+                    "name": "exec_command",
+                    "arguments": (
+                        '{"cmd":"sed -n 1,180p '
+                        '/Users/abraham/.codex/skills/pause-framework/SKILL.md"}'
+                    ),
+                },
+            },
+        ],
+    )
+
+    assert snapshot is not None
+    assert snapshot.live_actions[0].kind == "skill"
+    assert snapshot.live_actions[0].name == "pause-framework"
 
 
 def test_codex_live_snapshot_accepts_remaining_limit_percent() -> None:

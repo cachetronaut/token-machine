@@ -1,6 +1,6 @@
 ---
 status: active
-date: 2026-05-09
+date: 2026-05-13
 description: Public architecture for the Token Machine CLI-agent analytics package.
 keywords: token-machine, cli agents, analytics, architecture, ingestion, dashboard
 ---
@@ -9,7 +9,7 @@ keywords: token-machine, cli agents, analytics, architecture, ingestion, dashboa
 
 ## Purpose
 
-Token Machine turns local CLI-agent session logs and local agent databases into local analytics and a browser dashboard. It is built for developers who want to inspect token usage, model usage, source activity, tool activity, command activity, model profiles, and recent sessions across multiple coding agents.
+Token Machine turns local CLI-agent session logs and local agent databases into local analytics and a browser dashboard. It is built for developers who want to inspect token usage, model usage, source activity, tool activity, skill activity, executable usage, command activity, model profiles, and recent sessions across multiple coding agents.
 
 ## Design principles
 
@@ -88,6 +88,8 @@ FastAPI serves the dashboard through focused routes:
 Dashboard HTML lives in Jinja templates under `src/token_machine/dashboard/templates/`. CSS, browser-native JavaScript modules, images, and packaged icon fallbacks live under `src/token_machine/dashboard/assets/`. There is no frontend build system in v1.
 
 The dashboard API returns `DashboardData`, including aggregate summary data, daily and hourly series, model profiles, and recent session profiles. Metric and profile code returns dataclasses; JSON conversion happens at the route boundary.
+
+Tools are the broad action layer. Skills are represented as `skill_call` events only when a source exposes an explicit skill signal. Command execution is represented as a command-bearing action, and executable names are derived from command strings through shared parser helpers rather than from a fixed list.
 
 Dashboard icons are served through the same local asset route. `serve` refreshes the store icon cache from `@lobehub/icons-static-svg` by default and falls back to cached or packaged icons when refresh is skipped or unavailable. Runtime dashboard rendering must not depend on CDN, npm, or Node tooling.
 

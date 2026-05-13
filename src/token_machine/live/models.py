@@ -7,6 +7,7 @@ from enum import StrEnum
 from typing import Mapping, cast
 
 from token_machine.models import AgentSource, TokenUsage, safe_int
+from token_machine.sources.base import executable_from_command
 
 
 class LiveProbeStatus(StrEnum):
@@ -66,6 +67,8 @@ class LiveToolCall:
     name: str
     status: str = "observed"
     command: str = ""
+    kind: str = "tool"
+    executable: str = ""
     started_at: str = ""
     updated_at: str = ""
 
@@ -85,6 +88,7 @@ class LiveUsageSnapshot:
     context: LiveContextWindow = field(default_factory=LiveContextWindow)
     current_metrics: dict[str, int | str] = field(default_factory=dict)
     live_tool_calls: list[LiveToolCall] = field(default_factory=list)
+    live_actions: list[LiveToolCall] = field(default_factory=list)
     rate_limits: list[LiveRateLimit] = field(default_factory=list)
     session_limits: list[LiveSessionLimit] = field(default_factory=list)
     compaction: LiveCompaction = field(default_factory=LiveCompaction)
@@ -105,6 +109,12 @@ def snapshot_from_mapping(data: Mapping[str, object]) -> LiveUsageSnapshot:
     context_data = _mapping(data.get("context"))
     token_data = _mapping(data.get("token_usage"))
     source = _agent_source(str(data.get("source", AgentSource.UNKNOWN.value)))
+    live_tool_calls = [
+        _live_tool_call(item) for item in _mapping_list(data.get("live_tool_calls"))
+    ]
+    live_actions = [
+        _live_tool_call(item) for item in _mapping_list(data.get("live_actions"))
+    ]
     return LiveUsageSnapshot(
         source=source,
         session_id=str(data.get("session_id", "")),
@@ -123,16 +133,8 @@ def snapshot_from_mapping(data: Mapping[str, object]) -> LiveUsageSnapshot:
             origin=str(context_data.get("origin", LiveSnapshotOrigin.MISSING.value)),
         ),
         current_metrics=_int_string_dict(_mapping(data.get("current_metrics"))),
-        live_tool_calls=[
-            LiveToolCall(
-                name=str(item.get("name", "")),
-                status=str(item.get("status", "observed")),
-                command=str(item.get("command", "")),
-                started_at=str(item.get("started_at", "")),
-                updated_at=str(item.get("updated_at", "")),
-            )
-            for item in _mapping_list(data.get("live_tool_calls"))
-        ],
+        live_tool_calls=live_tool_calls,
+        live_actions=live_actions or live_tool_calls,
         rate_limits=[
             LiveRateLimit(
                 name=str(item.get("name", "")),
@@ -199,6 +201,20 @@ def _mapping_list(value: object) -> list[Mapping[str, object]]:
     return [
         cast(Mapping[str, object], item) for item in value if isinstance(item, Mapping)
     ]
+
+
+def _live_tool_call(item: Mapping[str, object]) -> LiveToolCall:
+    command = str(item.get("command", ""))
+    executable = str(item.get("executable", "")) or executable_from_command(command)
+    return LiveToolCall(
+        name=str(item.get("name", "")),
+        status=str(item.get("status", "observed")),
+        command=command,
+        kind=str(item.get("kind", "tool")),
+        executable=executable,
+        started_at=str(item.get("started_at", "")),
+        updated_at=str(item.get("updated_at", "")),
+    )
 
 
 def _int_string_dict(data: Mapping[str, object]) -> dict[str, int | str]:

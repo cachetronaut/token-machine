@@ -69,7 +69,7 @@ def clean_command(command: str) -> str:
     return re.sub(r"\s+", " ", command).strip()
 
 
-def cli_from_command(command: str) -> str:
+def executable_from_command(command: str) -> str:
     cleaned = clean_command(command)
     if not cleaned:
         return ""
@@ -88,8 +88,12 @@ def cli_from_command(command: str) -> str:
             if option in parts:
                 index = parts.index(option)
                 if index + 1 < len(parts):
-                    return cli_from_command(parts[index + 1])
+                    return executable_from_command(parts[index + 1])
     return Path(parts[0]).name
+
+
+def cli_from_command(command: str) -> str:
+    return executable_from_command(command)
 
 
 def mapping_value(data: Mapping[str, object], key: str) -> Mapping[str, object]:
@@ -140,11 +144,13 @@ def make_event(
     model: str = "",
     tool_name: str = "",
     tool_description: str = "",
+    skill_name: str = "",
+    skill_description: str = "",
     command: str = "",
     token_usage: TokenUsage | None = None,
     event_metadata: dict[str, JsonValue] | None = None,
 ) -> AnalyticsEvent:
-    cli_name = cli_from_command(command)
+    cli_name = executable_from_command(command)
     return AnalyticsEvent(
         event_id=stable_event_id(
             source_path,
@@ -153,6 +159,7 @@ def make_event(
             position,
             timestamp,
             tool_name,
+            skill_name,
             command,
         ),
         event_type=event_type,
@@ -164,6 +171,8 @@ def make_event(
         model=model,
         tool_name=tool_name,
         tool_description=tool_description,
+        skill_name=skill_name,
+        skill_description=skill_description,
         cli_name=cli_name,
         command=clean_command(command),
         token_usage=token_usage or TokenUsage(),

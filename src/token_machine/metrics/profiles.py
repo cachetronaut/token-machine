@@ -79,6 +79,9 @@ def dominant_workflow_role(events: list[AnalyticsEvent]) -> str:
         return "Conversation Analyst"
     cli_count = sum(event.event_type == EventType.CLI_COMMAND for event in actions)
     tool_count = sum(event.event_type == EventType.TOOL_CALL for event in actions)
+    skill_count = sum(event.event_type == EventType.SKILL_CALL for event in actions)
+    if skill_count >= max(2, tool_count + cli_count):
+        return "Skill-heavy Workflow"
     if cli_count >= max(2, tool_count * 2):
         return "Command-heavy Workflow"
     if tool_count >= max(2, cli_count * 2):
@@ -108,6 +111,7 @@ def model_profiles(events: list[AnalyticsEvent], limit: int = 12) -> list[ModelP
         if event.model and event.event_type in {
             EventType.MODEL_CALL,
             EventType.TOOL_CALL,
+            EventType.SKILL_CALL,
             EventType.CLI_COMMAND,
         }:
             by_model[event.model].append(event)
@@ -125,6 +129,7 @@ def model_profiles(events: list[AnalyticsEvent], limit: int = 12) -> list[ModelP
         session_tokens = [item.tokens.total_tokens for item in session_rollups]
         session_model_calls = [item.model_calls for item in session_rollups]
         session_tool_calls = [item.tool_calls for item in session_rollups]
+        session_skill_calls = [item.skill_calls for item in session_rollups]
         session_durations = [
             session_duration_seconds(items) for items in sessions.values()
         ]
@@ -150,9 +155,13 @@ def model_profiles(events: list[AnalyticsEvent], limit: int = 12) -> list[ModelP
                 projects=[{"path": path, "count": count} for path, count in projects],
                 model_calls=rollup.model_calls,
                 tool_calls=rollup.tool_calls,
+                skill_calls=rollup.skill_calls,
+                command_calls=rollup.command_calls,
                 cli_commands=rollup.cli_commands,
                 tokens=rollup.tokens,
                 tools=rollup.tools,
+                skills=rollup.skills,
+                executables=rollup.executables,
                 clis=rollup.clis,
                 tool_mix=tool_mix(model_events),
                 workflow_role=dominant_workflow_role(model_events),
@@ -164,6 +173,8 @@ def model_profiles(events: list[AnalyticsEvent], limit: int = 12) -> list[ModelP
                     "median_model_calls_per_session": median_int(session_model_calls),
                     "mean_tool_calls_per_session": mean_int(session_tool_calls),
                     "median_tool_calls_per_session": median_int(session_tool_calls),
+                    "mean_skill_calls_per_session": mean_int(session_skill_calls),
+                    "median_skill_calls_per_session": median_int(session_skill_calls),
                     "mean_duration_seconds": mean_int(session_durations),
                     "median_duration_seconds": median_int(session_durations),
                     "mean_time_to_first_tool_seconds": mean_int(

@@ -1,8 +1,10 @@
 # Token Machine
 
-Token Machine imports local CLI coding-agent session logs into a local analytics store and serves a browser dashboard for token, model, source, tool, command, and session usage.
+Token Machine imports local coding-agent session logs into a local analytics store and serves a browser dashboard for token, model, source, tool, skill, executable, command, and session usage.
 
 The package is built for public reuse. The core parser, storage, and metrics modules are typed Python code. Typer powers the command line interface. FastAPI serves the local dashboard. Supported sources currently include Codex, Claude Code, Gemini CLI, OpenCode, and Zed Agent Panel logs.
+
+Tools are the broad action layer. Skills are tracked separately when a source log exposes an explicit skill signal. Executables are detected programmatically from command strings, so shell usage is shown as a command facet instead of a fixed CLI list.
 
 ## Install
 

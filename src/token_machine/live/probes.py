@@ -24,6 +24,7 @@ from token_machine.sources.base import (
     session_id_from_path,
     string_value,
 )
+from token_machine.sources.codex import _codex_skill_name_from_command
 from token_machine.sources.gemini import _gemini_command_from_tool, _gemini_project_path
 from token_machine.utils.time import utc_now
 
@@ -77,10 +78,13 @@ def codex_snapshot(
             if response_type in {"function_call", "custom_tool_call"}:
                 call_id = string_value(payload, "call_id") or f"tool-{tools_seen}"
                 name = string_value(payload, "name")
+                command = _codex_command(payload)
+                skill_name = _codex_skill_name_from_command(command)
                 tool_calls[call_id] = LiveToolCall(
-                    name=name,
+                    name=skill_name or name,
                     status="current",
-                    command=_codex_command(payload),
+                    command=command,
+                    kind="skill" if skill_name else "tool",
                     started_at=timestamp,
                     updated_at=timestamp,
                 )
@@ -93,6 +97,8 @@ def codex_snapshot(
                         name=previous.name,
                         status="complete",
                         command=previous.command,
+                        kind=previous.kind,
+                        executable=previous.executable,
                         started_at=previous.started_at,
                         updated_at=timestamp,
                     )
@@ -149,6 +155,7 @@ def codex_snapshot(
             "tools_seen": tools_seen,
         },
         live_tool_calls=visible_tools,
+        live_actions=visible_tools,
         rate_limits=rate_limits,
         session_limits=_session_limits_from_rate_limits(rate_limits),
         compaction=compaction,
@@ -227,6 +234,7 @@ def claude_snapshot(
             "subagent_sessions": subagent_sessions,
         },
         live_tool_calls=tools[-8:],
+        live_actions=tools[-8:],
         compaction=compaction,
         token_usage=latest_usage,
         origin=LiveSnapshotOrigin.TRANSCRIPT.value,
@@ -301,6 +309,7 @@ def gemini_snapshot(
             "subagent_sessions": subagent_sessions,
         },
         live_tool_calls=tools[-8:],
+        live_actions=tools[-8:],
         compaction=compaction,
         token_usage=latest_usage,
         origin=LiveSnapshotOrigin.TRANSCRIPT.value,

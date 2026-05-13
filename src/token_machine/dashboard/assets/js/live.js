@@ -49,7 +49,7 @@ function summarize(snapshots) {
   return snapshots.reduce(
     (total, snapshot) => ({
       queries: total.queries + Number(snapshot.user_queries?.count || 0),
-      tools: total.tools + (snapshot.live_tool_calls || []).length,
+      tools: total.tools + liveActions(snapshot).length,
       subagents: total.subagents + snapshotSubagentCount(snapshot),
       tokens: total.tokens + sessionTokens(snapshot),
     }),
@@ -96,7 +96,7 @@ function renderLane(snapshot) {
   const model = snapshot.model || "model pending";
   const sessionName = snapshot.session_name || snapshot.session_id || "session pending";
   const project = projectName(snapshot.project_path) || "workspace pending";
-  const tools = snapshot.live_tool_calls || [];
+  const tools = liveActions(snapshot);
   const subagents = snapshotSubagentCount(snapshot);
   const sessionLimits = sessionUsageLimits(snapshot);
   const compaction = snapshot.compaction || {};
@@ -171,16 +171,21 @@ function renderTools(tools, snapshot) {
       ${orderedTools
         .map((tool, index) => {
           const command = tool.command || "";
-          const label = command ? commandLabel(command) : tool.name || "tool";
+          const kind = tool.kind || "tool";
+          const executable = tool.executable || "";
+          const label = command ? commandLabel(command) : executable || tool.name || kind;
           const subagentClass = isSubagentTool(tool) ? " live-tool-agent" : "";
+          const kindClass = ["tool", "skill", "command"].includes(kind)
+            ? ` live-tool-${kind}`
+            : " live-tool-tool";
           const key = toolKeys[index];
           const newClass = liveToolsPrimed && !knownLiveTools.has(key) ? " live-tool-new" : "";
           const currentClass = index === 0 ? " live-tool-current" : "";
           return `
-            <div class="live-tool${subagentClass}${currentClass}${newClass}" title="${escapeHtml(toolTitle(tool))}" style="--tool-index:${index}">
+            <div class="live-tool${kindClass}${subagentClass}${currentClass}${newClass}" title="${escapeHtml(toolTitle(tool))}" style="--tool-index:${index}">
               <span class="live-tool-dot" aria-hidden="true"></span>
               <div class="live-tool-copy">
-                <span>${escapeHtml(tool.name || "tool")}</span>
+                <span>${escapeHtml(kindLabel(kind, tool.name || executable || "tool"))}</span>
                 <strong>${escapeHtml(label)}</strong>
               </div>
             </div>
@@ -236,7 +241,15 @@ function limitTitle(limit) {
 }
 
 function toolTitle(tool) {
-  return [tool.status, tool.command, tool.updated_at].filter(Boolean).join(" · ");
+  return [tool.kind, tool.status, tool.executable, tool.command, tool.updated_at]
+    .filter(Boolean)
+    .join(" · ");
+}
+
+function kindLabel(kind, name) {
+  if (kind === "skill") return `skill ${name}`;
+  if (kind === "command") return `exec ${name}`;
+  return name;
 }
 
 function contextLevel(percent, hasWindow) {
@@ -351,7 +364,7 @@ function liveSignature(snapshots) {
           snapshot.compaction?.pre_tokens,
           snapshot.compaction?.post_tokens,
         ].join(":"),
-        (snapshot.live_tool_calls || [])
+        liveActions(snapshot)
           .map((tool) => [tool.name, tool.status, tool.command, tool.updated_at].join(":"))
           .join("|"),
       ].join("~"),
@@ -365,7 +378,7 @@ function subagentCount(tools) {
 
 function snapshotSubagentCount(snapshot) {
   return Math.max(
-    subagentCount(snapshot.live_tool_calls || []),
+    subagentCount(liveActions(snapshot)),
     Number(snapshot.current_metrics?.subagent_sessions || 0),
   );
 }
@@ -380,6 +393,10 @@ function isSubagentTool(tool) {
     "resume_agent",
     "task",
   ].includes(name);
+}
+
+function liveActions(snapshot) {
+  return snapshot.live_actions || snapshot.live_tool_calls || [];
 }
 
 function sessionTokens(snapshot) {

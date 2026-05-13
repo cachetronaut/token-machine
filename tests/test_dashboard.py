@@ -21,7 +21,29 @@ def test_fastapi_dashboard_routes_return_html_and_summary(tmp_path: Path) -> Non
                 timestamp="2026-05-08T10:00:00Z",
                 model="gpt-5.4",
                 token_usage=TokenUsage(input_tokens=1, total_tokens=1),
-            )
+            ),
+            AnalyticsEvent(
+                event_id="e2",
+                event_type=EventType.SKILL_CALL,
+                source=AgentSource.CODEX,
+                source_path="/tmp/session.jsonl",
+                session_id="s1",
+                timestamp="2026-05-08T10:00:01Z",
+                model="gpt-5.4",
+                skill_name="frontend-design",
+            ),
+            AnalyticsEvent(
+                event_id="e3",
+                event_type=EventType.TOOL_CALL,
+                source=AgentSource.CODEX,
+                source_path="/tmp/session.jsonl",
+                session_id="s1",
+                timestamp="2026-05-08T10:00:02Z",
+                model="gpt-5.4",
+                tool_name="exec_command",
+                cli_name="uv",
+                command="uv run pytest",
+            ),
         ],
         [],
     )
@@ -46,7 +68,12 @@ def test_fastapi_dashboard_routes_return_html_and_summary(tmp_path: Path) -> Non
     assert summary_response.status_code == 200
     payload = summary_response.json()
     assert payload["summary"]["sessions"] == 1
+    assert payload["summary"]["skill_calls"] == 1
+    assert payload["summary"]["skills"] == {"frontend-design": 1}
+    assert payload["summary"]["executables"] == {"Uv": 1}
+    assert payload["summary"]["command_calls"] == 1
     assert "rollup" in payload["recent_sessions"][0]
+    assert payload["recent_sessions"][0]["rollup"]["skill_calls"] == 1
     assert payload["model_profiles"][0]["model"] == "gpt-5.4"
 
 
@@ -155,6 +182,22 @@ def test_dashboard_live_surface_polls_live_api_and_debug_reload() -> None:
     assert "Session limit pending" not in live_js
     assert "live-signal-compact" in live_js
     assert "live_tool_calls" in live_js
+    assert "live_actions" in live_js
+
+
+def test_dashboard_renames_cli_surface_to_executables() -> None:
+    rankings_html = Path(
+        "src/token_machine/dashboard/templates/partials/rankings.html"
+    ).read_text(encoding="utf-8")
+    dashboard_js = Path("src/token_machine/dashboard/assets/js/dashboard.js").read_text(
+        encoding="utf-8"
+    )
+
+    assert "<h2>Executables</h2>" in rankings_html
+    assert "<h2>Skills</h2>" in rankings_html
+    assert "<h2>CLIs</h2>" not in rankings_html
+    assert 'renderBars("executables"' in dashboard_js
+    assert 'renderBars("skills"' in dashboard_js
 
 
 def test_dashboard_icon_mappings_include_zed_and_openrouter_models() -> None:

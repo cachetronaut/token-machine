@@ -77,11 +77,13 @@ def report(store: StoreOption = DEFAULT_STORE) -> None:
     typer.echo(f"Events: {summary.event_count:,}")
     typer.echo(f"Model calls: {summary.event_types.get('model_call', 0):,}")
     typer.echo(f"Tool calls: {summary.event_types.get('tool_call', 0):,}")
-    typer.echo(f"CLI commands: {summary.event_types.get('cli_command', 0):,}")
+    typer.echo(f"Skill calls: {summary.event_types.get('skill_call', 0):,}")
+    typer.echo(f"Command actions: {summary.command_calls:,}")
     typer.echo(f"Total tokens: {summary.tokens.total_tokens:,}")
     _print_counter("Models", summary.models)
     _print_counter("Tools", summary.tools)
-    _print_counter("CLIs", summary.clis)
+    _print_counter("Skills", summary.skills)
+    _print_counter("Executables", summary.executables)
 
 
 @app.command()

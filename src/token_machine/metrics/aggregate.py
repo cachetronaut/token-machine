@@ -7,7 +7,10 @@ from collections import Counter, defaultdict
 from token_machine.metrics.tools import (
     ACTION_EVENT_TYPES,
     build_description_map,
-    normalize_label,
+    command_fingerprint,
+    observed_executable_counts,
+    observed_skill_counts,
+    observed_tool_counts,
 )
 from token_machine.models import (
     AgentSource,
@@ -32,10 +35,14 @@ def empty_rollup(source_path: str = "") -> SessionRollup:
         event_count=0,
         model_calls=0,
         tool_calls=0,
+        skill_calls=0,
+        command_calls=0,
         cli_commands=0,
         messages=0,
         models={},
         tools={},
+        skills={},
+        executables={},
         clis={},
         tokens=TokenUsage(),
     )
@@ -59,6 +66,14 @@ def rollup_events(events: list[AnalyticsEvent], source_path: str = "") -> Sessio
         ),
         total_tokens=sum(event.token_usage.total_tokens for event in events),
     )
+    executables = dict(observed_executable_counts(events))
+    tools = dict(observed_tool_counts(events))
+    skills = dict(observed_skill_counts(events))
+    command_fingerprints = {
+        command_fingerprint(event)
+        for event in events
+        if event.command and event.event_type in ACTION_EVENT_TYPES
+    }
     return SessionRollup(
         session_id=events[0].session_id,
         source=events[0].source,
@@ -70,7 +85,9 @@ def rollup_events(events: list[AnalyticsEvent], source_path: str = "") -> Sessio
         ended_at=timestamps[-1] if timestamps else "",
         event_count=len(events),
         model_calls=sum(event.event_type == EventType.MODEL_CALL for event in events),
-        tool_calls=sum(event.event_type == EventType.TOOL_CALL for event in events),
+        tool_calls=sum(tools.values()),
+        skill_calls=sum(skills.values()),
+        command_calls=len(command_fingerprints),
         cli_commands=sum(event.event_type == EventType.CLI_COMMAND for event in events),
         messages=sum(event.event_type == EventType.MESSAGE for event in events),
         models=dict(
@@ -80,20 +97,10 @@ def rollup_events(events: list[AnalyticsEvent], source_path: str = "") -> Sessio
                 if event.model and event.event_type == EventType.MODEL_CALL
             )
         ),
-        tools=dict(
-            Counter(
-                normalize_label(event.tool_name)
-                for event in events
-                if event.tool_name and event.event_type == EventType.TOOL_CALL
-            )
-        ),
-        clis=dict(
-            Counter(
-                normalize_label(event.cli_name)
-                for event in events
-                if event.cli_name and event.event_type in ACTION_EVENT_TYPES
-            )
-        ),
+        tools=tools,
+        skills=skills,
+        executables=executables,
+        clis=executables,
         tokens=tokens,
     )
 
@@ -122,7 +129,11 @@ def dashboard_summary(events: list[AnalyticsEvent]) -> DashboardSummary:
                 if event.model and event.event_type == EventType.MODEL_CALL
             )
         ),
+        skill_calls=summary_rollup.skill_calls,
+        command_calls=summary_rollup.command_calls,
         tools=summary_rollup.tools,
+        skills=summary_rollup.skills,
+        executables=summary_rollup.executables,
         clis=summary_rollup.clis,
         event_types=dict(Counter(event.event_type.value for event in events)),
         tokens=tokens,

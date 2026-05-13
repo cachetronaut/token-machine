@@ -37,6 +37,7 @@ class EventType(StrEnum):
     MESSAGE = "message"
     MODEL_CALL = "model_call"
     TOOL_CALL = "tool_call"
+    SKILL_CALL = "skill_call"
     CLI_COMMAND = "cli_command"
 
 
@@ -155,6 +156,8 @@ class AnalyticsEvent:
     model: str = ""
     tool_name: str = ""
     tool_description: str = ""
+    skill_name: str = ""
+    skill_description: str = ""
     cli_name: str = ""
     command: str = ""
     token_usage: TokenUsage = field(default_factory=TokenUsage)
@@ -182,10 +185,14 @@ class SessionRollup:
     event_count: int
     model_calls: int
     tool_calls: int
+    skill_calls: int
+    command_calls: int
     cli_commands: int
     messages: int
     models: dict[str, int]
     tools: dict[str, int]
+    skills: dict[str, int]
+    executables: dict[str, int]
     clis: dict[str, int]
     tokens: TokenUsage
 
@@ -197,7 +204,11 @@ class DashboardSummary:
     sessions: int
     sources: dict[str, int]
     models: dict[str, int]
+    skill_calls: int
+    command_calls: int
     tools: dict[str, int]
+    skills: dict[str, int]
+    executables: dict[str, int]
     clis: dict[str, int]
     event_types: dict[str, int]
     tokens: TokenUsage
@@ -242,9 +253,13 @@ class ModelProfile:
     projects: list[dict[str, JsonValue]]
     model_calls: int
     tool_calls: int
+    skill_calls: int
+    command_calls: int
     cli_commands: int
     tokens: TokenUsage
     tools: dict[str, int]
+    skills: dict[str, int]
+    executables: dict[str, int]
     clis: dict[str, int]
     tool_mix: list[ToolMixItem]
     workflow_role: str
@@ -332,6 +347,8 @@ def event_from_mapping(data: Mapping[str, object]) -> AnalyticsEvent:
         model=str(data.get("model", "")),
         tool_name=str(data.get("tool_name", "")),
         tool_description=str(data.get("tool_description", "")),
+        skill_name=str(data.get("skill_name", "")),
+        skill_description=str(data.get("skill_description", "")),
         cli_name=str(data.get("cli_name", "")),
         command=str(data.get("command", "")),
         token_usage=token_usage,

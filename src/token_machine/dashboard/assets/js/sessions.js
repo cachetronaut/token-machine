@@ -37,6 +37,12 @@ export function renderSessions(sessions) {
       const tools = topEntries(rollup.tools, 2)
         .map(([name, count]) => `${escapeHtml(name)} ${fmt.format(count)}`)
         .join(" - ");
+      const skills = topEntries(rollup.skills, 2)
+        .map(([name, count]) => `${escapeHtml(name)} ${fmt.format(count)}`)
+        .join(" - ");
+      const executables = topEntries(rollup.executables || rollup.clis, 2)
+        .map(([name, count]) => `${escapeHtml(name)} ${fmt.format(count)}`)
+        .join(" - ");
       const appLabel = appDisplayName(rollup.source);
       const duration = formatDuration(session.duration_seconds);
       const firstTool = formatDuration(session.time_to_first_tool_seconds);
@@ -47,7 +53,7 @@ export function renderSessions(sessions) {
       return `
       <div class="timeline-item session-item${isNew ? " session-item-new" : ""}${isCurrent ? " session-item-current" : ""}" style="--project-color:${color}" data-session-key="${escapeHtml(sessionKey)}">
         <div class="time-label">${escapeHtml(ended.replace("T", " "))}</div>
-        <div class="timeline-card" data-tip="<strong>${escapeHtml(project)}</strong>${escapeHtml(role)} · ${escapeHtml(appLabel)}<br>${fmt.format(rollup.model_calls || 0)} model calls, ${fmt.format(rollup.tool_calls || 0)} tool calls<br>${fmt.format(rollup.cli_commands || 0)} CLI commands · ${duration} duration<br>First action: ${firstTool}<br>${fmt.format(rollup.tokens?.total_tokens || 0)} tokens">
+        <div class="timeline-card" data-tip="<strong>${escapeHtml(project)}</strong>${escapeHtml(role)} · ${escapeHtml(appLabel)}<br>${fmt.format(rollup.model_calls || 0)} model calls, ${fmt.format(rollup.tool_calls || 0)} tool calls, ${fmt.format(rollup.skill_calls || 0)} skill calls<br>${fmt.format(rollup.command_calls || rollup.cli_commands || 0)} command actions · ${duration} duration<br>Tools: ${escapeHtml(tools || "none")}<br>Skills: ${escapeHtml(skills || "none")}<br>Executables: ${escapeHtml(executables || "none")}<br>First action: ${firstTool}<br>${fmt.format(rollup.tokens?.total_tokens || 0)} tokens">
           <div class="session-copy">
             <div class="timeline-main">
               <div class="timeline-project">${escapeHtml(project)}</div>
@@ -56,10 +62,11 @@ export function renderSessions(sessions) {
             <div class="timeline-stats">
               <span><strong class="flip-count">${fmt.format(rollup.model_calls || 0)}</strong> model</span>
               <span><strong class="flip-count">${fmt.format(rollup.tool_calls || 0)}</strong> tools</span>
+              <span><strong class="flip-count">${fmt.format(rollup.skill_calls || 0)}</strong> skills</span>
               <span><strong class="flip-count">${compactNumber(rollup.tokens?.total_tokens || 0)}</strong> tokens</span>
               <span>${escapeHtml(role)}</span>
             </div>
-            <div class="model-line">${models || escapeHtml(tools || "No model details")}</div>
+            <div class="model-line">${models || escapeHtml([tools, skills, executables].filter(Boolean).join(" - ") || "No model details")}</div>
           </div>
         </div>
       </div>
@@ -84,6 +91,8 @@ function stableSessionKey(session) {
     rollup.ended_at || "",
     rollup.model_calls || 0,
     rollup.tool_calls || 0,
+    rollup.skill_calls || 0,
+    rollup.command_calls || rollup.cli_commands || 0,
   ].join("|");
 }
 

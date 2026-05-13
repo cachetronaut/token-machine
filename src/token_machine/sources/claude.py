@@ -115,6 +115,24 @@ class ClaudeSource:
                     )
                 for tool in _claude_tool_uses(message.get("content")):
                     tool_input = mapping_value(tool, "input")
+                    tool_name = string_value(tool, "name")
+                    if tool_name == "Skill":
+                        events.append(
+                            make_event(
+                                source=self.name,
+                                source_path=path,
+                                session_id=session_id,
+                                event_type=EventType.SKILL_CALL,
+                                position=position,
+                                timestamp=timestamp,
+                                project_path=project_path,
+                                model=model,
+                                skill_name=string_value(tool_input, "skill"),
+                                skill_description=string_value(tool_input, "args"),
+                                event_metadata=metadata(tool_id=tool.get("id", "")),
+                            )
+                        )
+                        continue
                     events.append(
                         make_event(
                             source=self.name,
@@ -125,7 +143,7 @@ class ClaudeSource:
                             timestamp=timestamp,
                             project_path=project_path,
                             model=model,
-                            tool_name=string_value(tool, "name"),
+                            tool_name=tool_name,
                             tool_description=string_value(tool_input, "description"),
                             command=string_value(tool_input, "cmd")
                             or string_value(tool_input, "command"),

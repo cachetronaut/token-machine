@@ -68,7 +68,11 @@ export function renderModelProfiles(rows) {
   const visibleRows = rows.filter(
     (row) =>
       row.model !== "unknown" &&
-      (row.model_calls || row.tool_calls || row.tokens.total_tokens),
+      (row.model_calls ||
+        row.tool_calls ||
+        row.skill_calls ||
+        row.command_calls ||
+        row.tokens.total_tokens),
   );
   if (!visibleRows.length) {
     root.innerHTML =
@@ -78,7 +82,10 @@ export function renderModelProfiles(rows) {
   root.innerHTML = visibleRows
     .slice(0, 12)
     .map((row, index) => {
-      const clis = topEntries(row.clis, 3)
+      const executables = topEntries(row.executables || row.clis, 3)
+        .map(([name, count]) => `${name} ${fmt.format(count)}`)
+        .join(" - ");
+      const skills = topEntries(row.skills, 3)
         .map(([name, count]) => `${name} ${fmt.format(count)}`)
         .join(" - ");
       const projects = (row.projects || [])
@@ -131,7 +138,8 @@ export function renderModelProfiles(rows) {
               ${renderToolMatrix(row)}
               <div class="stat-table front-stats">
                 ${effort ? `<div class="stat-row"><span>effort</span><strong>${escapeHtml(effort)}</strong></div>` : ""}
-                <div class="stat-row"><span>cli</span><strong>${escapeHtml(clis || "none")}</strong></div>
+                <div class="stat-row"><span>skills</span><strong>${escapeHtml(skills || "none")}</strong></div>
+                <div class="stat-row"><span>executables</span><strong>${escapeHtml(executables || "none")}</strong></div>
                 <div class="stat-row"><span>projects</span><strong>${escapeHtml(projects || "none")}</strong></div>
               </div>
               <div class="model-tools">${escapeHtml(row.scouting_report || "")}</div>
@@ -209,6 +217,7 @@ function renderBackStatMatrix(row) {
       <div class="matrix-row matrix-head"><div class="matrix-cell"></div><div class="matrix-cell">mean</div><div class="matrix-cell">median</div><div class="matrix-cell">mode</div></div>
       <div class="matrix-row"><div class="matrix-cell matrix-label">calls</div><div class="matrix-cell matrix-value">${compactNumber(rowStat(row, "mean_model_calls_per_session"))}</div><div class="matrix-cell matrix-value">${compactNumber(rowStat(row, "median_model_calls_per_session"))}</div><div class="matrix-cell matrix-value">${compactNumber(row.model_calls)}</div></div>
       <div class="matrix-row"><div class="matrix-cell matrix-label">tools</div><div class="matrix-cell matrix-value">${compactNumber(rowStat(row, "mean_tool_calls_per_session"))}</div><div class="matrix-cell matrix-value">${compactNumber(rowStat(row, "median_tool_calls_per_session"))}</div><div class="matrix-cell matrix-value">${compactNumber(row.tool_calls)}</div></div>
+      <div class="matrix-row"><div class="matrix-cell matrix-label">skills</div><div class="matrix-cell matrix-value">${compactNumber(rowStat(row, "mean_skill_calls_per_session"))}</div><div class="matrix-cell matrix-value">${compactNumber(rowStat(row, "median_skill_calls_per_session"))}</div><div class="matrix-cell matrix-value">${compactNumber(row.skill_calls || 0)}</div></div>
       <div class="matrix-row"><div class="matrix-cell matrix-label">tokens</div><div class="matrix-cell matrix-value">${compactNumber(rowStat(row, "mean_tokens_per_session"))}</div><div class="matrix-cell matrix-value">${compactNumber(rowStat(row, "median_tokens_per_session"))}</div><div class="matrix-cell matrix-value">${compactNumber(row.tokens.total_tokens || 0)}</div></div>
       <div class="matrix-row"><div class="matrix-cell matrix-label">time</div><div class="matrix-cell matrix-value">${formatDuration(rowStat(row, "median_duration_seconds"))}</div><div class="matrix-cell matrix-value">${formatDuration(rowStat(row, "median_time_to_first_tool_seconds"))}</div><div class="matrix-cell matrix-value" title="${escapeHtml(modeProject)}">${escapeHtml(modeProject)}</div></div>
     </div>

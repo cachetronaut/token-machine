@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from collections.abc import Sequence
 from pathlib import Path
 from typing import Mapping, cast
@@ -10,6 +11,7 @@ from typing import Mapping, cast
 from token_machine.config import DEFAULT_WATCH_PATHS
 from token_machine.models import AgentSource, AnalyticsEvent, EventType, TokenUsage
 from token_machine.sources.base import (
+    clean_command,
     discover_jsonl_files,
     list_value,
     make_event,
@@ -17,6 +19,11 @@ from token_machine.sources.base import (
     metadata,
     session_id_from_path,
     string_value,
+)
+
+_SKILL_PATH_RE = re.compile(
+    r"(?:^|[\s'\"=])(?P<path>(?:~|/)[^\s'\";]*?/skills/(?:\.system/)?"
+    r"(?P<name>[^/\s'\";]+)/SKILL\.md)(?=$|[\s'\";])"
 )
 
 
@@ -94,6 +101,7 @@ class CodexSource:
                 response_type = string_value(payload, "type")
                 if response_type in {"function_call", "custom_tool_call"}:
                     tool_name = string_value(payload, "name")
+                    command = _codex_command_from_payload(tool_name, payload)
                     events.append(
                         make_event(
                             source=self.name,
@@ -105,8 +113,46 @@ class CodexSource:
                             project_path=project_path,
                             model=model,
                             tool_name=tool_name,
-                            command=_codex_command_from_payload(tool_name, payload),
+                            command=command,
                             event_metadata=metadata(call_id=payload.get("call_id", "")),
+                        )
+                    )
+                    skill_name = _codex_skill_name_from_command(command)
+                    if skill_name:
+                        events.append(
+                            make_event(
+                                source=self.name,
+                                source_path=path,
+                                session_id=session_id,
+                                event_type=EventType.SKILL_CALL,
+                                position=position,
+                                timestamp=timestamp,
+                                project_path=project_path,
+                                model=model,
+                                skill_name=skill_name,
+                                event_metadata=metadata(
+                                    call_id=payload.get("call_id", ""),
+                                    inferred_from="skill_file_read",
+                                ),
+                            )
+                        )
+                elif response_type in {"skill_call", "skill_use", "skill"}:
+                    events.append(
+                        make_event(
+                            source=self.name,
+                            source_path=path,
+                            session_id=session_id,
+                            event_type=EventType.SKILL_CALL,
+                            position=position,
+                            timestamp=timestamp,
+                            project_path=project_path,
+                            model=model,
+                            skill_name=_codex_skill_name(payload),
+                            skill_description=string_value(payload, "description"),
+                            event_metadata=metadata(
+                                call_id=payload.get("call_id", ""),
+                                skill_id=payload.get("id", ""),
+                            ),
                         )
                     )
                 elif response_type == "message":
@@ -171,7 +217,39 @@ class CodexSource:
                         ),
                     )
                 )
+            elif event_type in {"skill_call", "skill_use", "skill"}:
+                events.append(
+                    make_event(
+                        source=self.name,
+                        source_path=path,
+                        session_id=session_id,
+                        event_type=EventType.SKILL_CALL,
+                        position=position,
+                        timestamp=timestamp,
+                        project_path=project_path,
+                        model=model,
+                        skill_name=_codex_skill_name(payload),
+                        skill_description=string_value(payload, "description"),
+                        event_metadata=metadata(skill_id=payload.get("id", "")),
+                    )
+                )
         return events
+
+
+def _codex_skill_name(payload: Mapping[str, object]) -> str:
+    return (
+        string_value(payload, "skill_name")
+        or string_value(payload, "skill")
+        or string_value(payload, "name")
+    )
+
+
+def _codex_skill_name_from_command(command: str) -> str:
+    cleaned = clean_command(command)
+    if "SKILL.md" not in cleaned or "/skills/" not in cleaned:
+        return ""
+    match = _SKILL_PATH_RE.search(cleaned)
+    return match.group("name") if match else ""
 
 
 def _codex_command_from_payload(tool_name: str, payload: Mapping[str, object]) -> str:

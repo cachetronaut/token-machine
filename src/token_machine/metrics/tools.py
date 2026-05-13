@@ -6,8 +6,12 @@ import re
 from collections import Counter
 
 from token_machine.models import AnalyticsEvent, EventType, ToolMixItem
+from token_machine.sources.base import clean_command, executable_from_command
 
-ACTION_EVENT_TYPES = {EventType.TOOL_CALL, EventType.CLI_COMMAND}
+TOOL_EVENT_TYPES = {EventType.TOOL_CALL}
+SKILL_EVENT_TYPES = {EventType.SKILL_CALL}
+COMMAND_EVENT_TYPES = {EventType.CLI_COMMAND}
+ACTION_EVENT_TYPES = TOOL_EVENT_TYPES | SKILL_EVENT_TYPES | COMMAND_EVENT_TYPES
 
 
 def normalize_label(name: str) -> str:
@@ -25,21 +29,109 @@ def normalize_label(name: str) -> str:
 
 
 def event_tool_label(event: AnalyticsEvent) -> str:
-    """Return the observed action label for a tool or command event."""
-    raw = ""
-    if event.cli_name:
-        raw = event.cli_name
-    else:
-        raw = event.tool_name or event.command
-    return normalize_label(raw)
+    """Return the observed tool label for a tool event."""
+    return normalize_label(event.tool_name)
+
+
+def event_skill_label(event: AnalyticsEvent) -> str:
+    """Return the observed skill label for a skill event."""
+    return event.skill_name.strip()
+
+
+def event_executable_label(event: AnalyticsEvent) -> str:
+    """Return the executable detected from a command-bearing event."""
+    return normalize_label(event.cli_name or executable_from_command(event.command))
+
+
+def event_action_label(event: AnalyticsEvent) -> str:
+    """Return a mixed action label without erasing action kind."""
+    if event.event_type == EventType.SKILL_CALL:
+        label = event_skill_label(event)
+        return f"Skill: {label}" if label else ""
+    if event.event_type == EventType.TOOL_CALL and event_tool_label(event) == "Skill":
+        return "Skill"
+    if event.command:
+        label = event_executable_label(event)
+        return f"Exec: {label}" if label else ""
+    if event.event_type == EventType.TOOL_CALL:
+        return event_tool_label(event)
+    return ""
+
+
+def command_fingerprint(event: AnalyticsEvent) -> tuple[str, str, str, str, str]:
+    """Return a stable identity for a command facet across duplicate event rows."""
+    return (
+        event.source.value,
+        event.session_id,
+        event.timestamp,
+        event.tool_name,
+        clean_command(event.command),
+    )
 
 
 def observed_tool_counts(events: list[AnalyticsEvent]) -> Counter[str]:
     counts: Counter[str] = Counter()
     for event in events:
-        if event.event_type not in ACTION_EVENT_TYPES:
+        if event.event_type != EventType.TOOL_CALL:
             continue
         label = event_tool_label(event).strip()
+        if label == "Skill":
+            continue
+        if label:
+            counts[label] += 1
+    return counts
+
+
+def observed_skill_counts(events: list[AnalyticsEvent]) -> Counter[str]:
+    counts: Counter[str] = Counter()
+    has_explicit_skills = any(
+        event.event_type == EventType.SKILL_CALL and event.skill_name
+        for event in events
+    )
+    for event in events:
+        if event.event_type == EventType.SKILL_CALL:
+            label = event_skill_label(event)
+        elif (
+            not has_explicit_skills
+            and event.event_type == EventType.TOOL_CALL
+            and event_tool_label(event) == "Skill"
+        ):
+            label = "Skill"
+        else:
+            continue
+        if label:
+            counts[label] += 1
+    return counts
+
+
+def observed_executable_counts(events: list[AnalyticsEvent]) -> Counter[str]:
+    counts: Counter[str] = Counter()
+    seen: set[tuple[str, str, str, str, str]] = set()
+    for event in events:
+        if event.event_type not in ACTION_EVENT_TYPES or not event.command:
+            continue
+        fingerprint = command_fingerprint(event)
+        if fingerprint in seen:
+            continue
+        seen.add(fingerprint)
+        label = event_executable_label(event)
+        if label:
+            counts[label] += 1
+    return counts
+
+
+def observed_action_counts(events: list[AnalyticsEvent]) -> Counter[str]:
+    counts: Counter[str] = Counter()
+    seen_commands: set[tuple[str, str, str, str, str]] = set()
+    for event in events:
+        if event.event_type not in ACTION_EVENT_TYPES:
+            continue
+        if event.command:
+            fingerprint = command_fingerprint(event)
+            if fingerprint in seen_commands:
+                continue
+            seen_commands.add(fingerprint)
+        label = event_action_label(event).strip()
         if label:
             counts[label] += 1
     return counts
@@ -64,12 +156,13 @@ def build_description_map(events: list[AnalyticsEvent]) -> dict[str, str]:
         if event.event_type not in ACTION_EVENT_TYPES:
             continue
 
-        label = event_tool_label(event)
+        label = event_action_label(event)
         if not label:
             continue
 
-        if event.tool_description and label not in explicit:
-            explicit[label] = event.tool_description.lower()
+        description = event.skill_description or event.tool_description
+        if description and label not in explicit:
+            explicit[label] = description.lower()
 
         if event.command:
             cmd = event.command.strip()
@@ -93,7 +186,7 @@ def build_description_map(events: list[AnalyticsEvent]) -> dict[str, str]:
 
 
 def tool_mix(events: list[AnalyticsEvent], limit: int = 5) -> list[ToolMixItem]:
-    counts = observed_tool_counts(events)
+    counts = observed_action_counts(events)
     total = sum(counts.values()) or 1
     desc_map = build_description_map(events)
     return [
