@@ -18,6 +18,8 @@ const chartModes = {
   "hourly-chart": "events",
 };
 
+let latestSummaryData = null;
+
 const chartMetricConfig = {
   "daily-chart": {
     tokens: {
@@ -64,6 +66,7 @@ const chartMetricConfig = {
 async function refresh(signal) {
   try {
     const data = await fetchSummary({ signal });
+    latestSummaryData = data;
     const summary = data.summary;
     metric("sessions", summary.sessions);
     metric("events", summary.event_count);
@@ -112,11 +115,26 @@ function renderMetricChart(id, points, labelKey, insightId) {
     labelKey,
     unit: config.unit,
     subject: config.subject,
+    xAxis: labelKey === "day" ? "day" : "hour",
   });
   document.querySelectorAll(`[data-chart-mode="${id}"]`).forEach((button) => {
     button.classList.toggle("active", button.dataset.chartValue === mode);
     button.closest(".ops-card")?.style.setProperty("--ops-color", config.color);
   });
+}
+
+function renderChangedMetricChart(id) {
+  if (!latestSummaryData) {
+    refresh();
+    return;
+  }
+  if (id === "daily-chart") {
+    renderMetricChart(id, latestSummaryData.daily, "day", "daily-chart-insight");
+    return;
+  }
+  if (id === "hourly-chart") {
+    renderMetricChart(id, latestSummaryData.hourly, "hour", "hourly-chart-insight");
+  }
 }
 
 async function refreshLive(signal) {
@@ -137,7 +155,10 @@ startDebugReloadPolling(() => {
 initSectionToggles();
 document.querySelectorAll("[data-chart-mode]").forEach((button) => {
   button.addEventListener("click", () => {
-    chartModes[button.dataset.chartMode] = button.dataset.chartValue;
-    refresh();
+    const chartId = button.dataset.chartMode;
+    if (chartModes[chartId] === button.dataset.chartValue) return;
+    chartModes[chartId] = button.dataset.chartValue;
+    document.getElementById(chartId)?.classList.add("chart-tab-switch");
+    renderChangedMetricChart(chartId);
   });
 });

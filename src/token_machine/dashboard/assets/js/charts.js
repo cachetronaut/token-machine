@@ -24,6 +24,10 @@ const appColors = {
   unknown: "#b1ada1",
 };
 
+const chartMotionFrames = new WeakMap();
+let chartMotionBatchStart = 0;
+let chartMotionBatchExpires = 0;
+
 export function appColor(source) {
   return appColors[String(source || "").toLowerCase()] || appColors.unknown;
 }
@@ -151,7 +155,11 @@ function polarPoint(cx, cy, radius, angle) {
 export function renderChart(id, points, getValue, lineColor, fillColor, labelKey, options = {}) {
   const root = document.getElementById(id);
   root.style.setProperty("--chart-color", lineColor);
-  root.innerHTML = chartSvg(points, getValue, lineColor, fillColor, labelKey, options);
+  root.classList.remove("chart-refresh", "chart-tab-switch");
+  void root.offsetWidth;
+  root.innerHTML = chartSvg(id, points, getValue, lineColor, fillColor, labelKey, options);
+  animateSignalChart(root);
+  root.classList.add("chart-refresh");
   const hit = root.querySelector(".chart-hit");
   if (hit && points.length) {
     hit.addEventListener("mousemove", (event) => {
@@ -162,21 +170,15 @@ export function renderChart(id, points, getValue, lineColor, fillColor, labelKey
     });
     hit.addEventListener("mouseleave", hideTooltip);
   }
-  root.querySelectorAll(".chart-dot").forEach((dot) => {
-    dot.addEventListener("mousemove", (event) => {
-      showChartTooltip(event, id, points[Number(dot.dataset.index)], getValue, labelKey, options);
-    });
-    dot.addEventListener("mouseleave", hideTooltip);
-  });
   if (options.insightId) {
     setInsight(options.insightId, chartInsight(points, getValue, options));
   }
 }
 
-function chartSvg(points, getValue, lineColor, fillColor, labelKey, options) {
+function chartSvg(id, points, getValue, lineColor, fillColor, labelKey, options) {
   const width = 760;
   const height = 260;
-  const pad = { top: 18, right: 18, bottom: 34, left: 54 };
+  const pad = { top: 28, right: 30, bottom: 44, left: 62 };
   const innerW = width - pad.left - pad.right;
   const innerH = height - pad.top - pad.bottom;
   const values = points.map(getValue);
@@ -191,27 +193,123 @@ function chartSvg(points, getValue, lineColor, fillColor, labelKey, options) {
   ]);
   const line = xy.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(" ");
   const area = `${pad.left},${pad.top + innerH} ${line} ${pad.left + innerW},${pad.top + innerH}`;
+  const clipId = `${id.replace(/[^\w-]/g, "-")}-progress-clip`;
   const grid = [0, .25, .5, .75, 1].map((tick) => {
     const y = pad.top + innerH - tick * innerH;
     return `<line class="chart-grid-line" x1="${pad.left}" y1="${y}" x2="${pad.left + innerW}" y2="${y}"/>`;
   }).join("");
-  const dots = xy.map(([x, y], index) => `
-    <circle class="chart-dot" data-index="${index}" cx="${x}" cy="${y}" r="5" fill="${lineColor}"></circle>
-  `).join("");
   const firstLabel = points[0]?.[labelKey] || "";
   const lastLabel = points[points.length - 1]?.[labelKey] || "";
   return `
     <svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="none">
+      <defs>
+        <clipPath id="${clipId}">
+          <rect class="chart-progress-clip" x="${pad.left}" y="0" width="0" height="${height}"></rect>
+        </clipPath>
+      </defs>
       ${grid}
-      <text class="chart-axis-label" x="${pad.left}" y="14">${fmt.format(max)} ${escapeHtml(options.unit || "")}</text>
-      <polygon class="chart-area" points="${area}" fill="${fillColor}"></polygon>
-      <polyline class="chart-line" points="${line}" stroke="${lineColor}"></polyline>
-      ${dots}
+      <text class="chart-axis-title chart-axis-y" x="16" y="${pad.top + innerH / 2}" transform="rotate(-90 16 ${pad.top + innerH / 2})">${escapeHtml(options.unit || "value")}</text>
+      <text class="chart-axis-label" x="${pad.left - 8}" y="${pad.top + 4}" text-anchor="end">${fmt.format(max)}</text>
+      <text class="chart-axis-label" x="${pad.left - 8}" y="${pad.top + innerH}" text-anchor="end">0</text>
+      <polygon class="chart-area" points="${area}" fill="${fillColor}" clip-path="url(#${clipId})"></polygon>
+      <polyline class="chart-line chart-line-progress" points="${line}" stroke="${lineColor}" clip-path="url(#${clipId})"></polyline>
+      <g class="chart-ball" transform="translate(${xy[0][0].toFixed(1)} ${xy[0][1].toFixed(1)})">
+        <circle class="chart-ball-halo" r="8" fill="${lineColor}"></circle>
+        <circle class="chart-ball-dot" r="5.5" fill="${lineColor}"></circle>
+      </g>
       <text class="chart-axis-label" x="${pad.left}" y="${height - 10}">${escapeHtml(firstLabel)}</text>
       <text class="chart-axis-label" x="${pad.left + innerW}" y="${height - 10}" text-anchor="end">${escapeHtml(lastLabel)}</text>
+      <text class="chart-axis-title" x="${pad.left + innerW / 2}" y="${height - 10}" text-anchor="middle">${escapeHtml(options.xAxis || labelKey)}</text>
       <rect class="chart-hit" x="0" y="0" width="${width}" height="${height}" fill="transparent"></rect>
     </svg>
   `;
+}
+
+function animateSignalChart(root) {
+  const previousFrame = chartMotionFrames.get(root);
+  if (previousFrame) cancelAnimationFrame(previousFrame);
+
+  root.classList.remove("chart-motion-done");
+  const line = root.querySelector(".chart-line-progress");
+  const clip = root.querySelector(".chart-progress-clip");
+  const ball = root.querySelector(".chart-ball");
+  const points = parsePolylinePoints(line?.getAttribute("points") || "");
+  if (!line || !clip || !ball || points.length === 0) return;
+
+  const duration = cssTimeToMs(getComputedStyle(document.documentElement).getPropertyValue("--motion-fill"), 3600);
+  const startTime = nextChartMotionStart();
+  const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  const update = (progress) => {
+    const point = pointAtProgress(points, progress);
+    const firstX = points[0].x;
+    const lastX = points[points.length - 1].x;
+    const visibleWidth = Math.max(0, point.x - firstX + 2);
+    const finalWidth = Math.max(0, lastX - firstX + 2);
+    clip.setAttribute("width", `${(progress >= 1 ? finalWidth : visibleWidth).toFixed(2)}`);
+    ball.setAttribute("transform", `translate(${point.x.toFixed(2)} ${point.y.toFixed(2)})`);
+  };
+
+  if (reducedMotion) {
+    update(1);
+    root.classList.add("chart-motion-done");
+    return;
+  }
+
+  update(0);
+  const tick = (now) => {
+    const elapsed = Math.max(0, now - startTime);
+    const progress = Math.min(1, elapsed / duration);
+    update(progress);
+    if (progress < 1) {
+      chartMotionFrames.set(root, requestAnimationFrame(tick));
+    } else {
+      chartMotionFrames.delete(root);
+      root.classList.add("chart-motion-done");
+    }
+  };
+  chartMotionFrames.set(root, requestAnimationFrame(tick));
+}
+
+function nextChartMotionStart() {
+  const now = performance.now();
+  if (!chartMotionBatchStart || now > chartMotionBatchExpires) {
+    chartMotionBatchStart = now + 64;
+    chartMotionBatchExpires = now + 180;
+  }
+  return chartMotionBatchStart;
+}
+
+function parsePolylinePoints(points) {
+  return points.trim().split(/\s+/).filter(Boolean).map((pair) => {
+    const [x, y] = pair.split(",").map(Number);
+    return { x, y };
+  }).filter((point) => Number.isFinite(point.x) && Number.isFinite(point.y));
+}
+
+function pointAtProgress(points, progress) {
+  if (points.length === 1) return points[0];
+  const firstX = points[0].x;
+  const lastX = points[points.length - 1].x;
+  const x = firstX + (lastX - firstX) * progress;
+  const nextIndex = points.findIndex((point) => point.x >= x);
+  if (nextIndex <= 0) return points[0];
+  const next = points[nextIndex];
+  const previous = points[nextIndex - 1];
+  const span = Math.max(next.x - previous.x, 1);
+  const localProgress = Math.max(0, Math.min(1, (x - previous.x) / span));
+  return {
+    x,
+    y: previous.y + (next.y - previous.y) * localProgress,
+  };
+}
+
+function cssTimeToMs(value, fallback) {
+  const match = String(value || "").trim().match(/^([\d.]+)(ms|s)$/);
+  if (!match) return fallback;
+  const amount = Number(match[1]);
+  if (!Number.isFinite(amount)) return fallback;
+  return match[2] === "s" ? amount * 1000 : amount;
 }
 
 function showChartTooltip(event, id, row, getValue, labelKey, options = {}) {

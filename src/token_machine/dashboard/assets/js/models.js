@@ -5,7 +5,6 @@ import {
   escapeHtml,
   fmt,
   formatDuration,
-  projectName,
   topEntries,
 } from "./format.js";
 import {
@@ -33,17 +32,17 @@ export function renderBars(
   const max = Math.max(...entries.map(([, count]) => count), 1);
   root.innerHTML = entries
     .map(
-      ([name, count]) => {
+      ([name, count], index) => {
         const width = Math.max(3, (count / max) * 100);
         const description = options.descriptions?.[name] || "";
         return `
-    <div class="bar-row" title="${escapeHtml(name)}">
+    <div class="bar-row" title="${escapeHtml(name)}" style="--bar-width:${width}%; --bar-index:${index}">
       <div class="bar-main">
         <div class="bar-top">
           <div class="bar-label">${escapeHtml(name)}</div>
           <div class="bar-value">${fmt.format(count)}</div>
         </div>
-        <div class="bar-track"><div class="bar-fill" style="width:${width}%"></div></div>
+        <div class="bar-track"><div class="bar-fill"></div><span class="bar-runner" aria-hidden="true"></span></div>
         ${description ? `<div class="bar-desc">${escapeHtml(description)}</div>` : ""}
       </div>
     </div>
@@ -95,9 +94,6 @@ export function renderModelProfiles(rows) {
       const skills = topEntries(row.skills, 3)
         .map(([name, count]) => `${name} ${fmt.format(count)}`)
         .join(" - ");
-      const projects = (row.projects || [])
-        .map((project) => `${projectName(project.path)} ${project.count}`)
-        .join(" - ");
       const color = modelCardColor(row);
       const effort =
         row.reasoning_level && row.reasoning_level !== "not in log"
@@ -110,33 +106,37 @@ export function renderModelProfiles(rows) {
       <div class="card model-card" style="--card-color:${color}">
         <div class="model-inner">
           <div class="card-face">
-            <div class="card-topline">
-              <div class="provider-logo">${renderProviderLogo(row)}</div>
-              <div class="card-number">#${String(index + 1).padStart(3, "0")}</div>
+            <div class="model-card-header">
+              <div class="card-topline">
+                <div class="provider-logo">${renderProviderLogo(row)}</div>
+                <div class="card-number">${escapeHtml(row.model_family || "")}</div>
+              </div>
+              <div>
+                <div class="model-title">${escapeHtml(row.model)}</div>
+                <div class="model-subtitle">${fmt.format(row.session_count || 0)} sessions</div>
+              </div>
             </div>
             <div class="model-art">${renderModelHero(row)}</div>
             <div>
-              <div class="model-title">${escapeHtml(row.model)}</div>
               <div class="mini-stats">
                 <div class="mini-stat"><strong>${compactNumber(row.model_calls)}</strong><span>calls</span></div>
                 <div class="mini-stat"><strong>${compactNumber(row.session_count || 0)}</strong><span>sessions</span></div>
                 <div class="mini-stat"><strong>${compactNumber(row.tokens.total_tokens || 0)}</strong><span>tokens</span></div>
               </div>
-              <div class="role-ribbon">${escapeHtml(row.workflow_role || "Captured Activity")}</div>
-              ${renderMix(row.tool_mix)}
             </div>
-            ${levelIcon(row.intelligence_level)}
           </div>
           <div class="card-face card-back">
-            <div class="card-topline">
-              <div class="provider-logo">${renderModelBadgeIcon(row)}</div>
-              <div class="card-number">stats</div>
-            </div>
-            <div class="card-back-body">
+            <div class="model-card-header">
+              <div class="card-topline">
+                <div class="provider-logo">${renderModelBadgeIcon(row)}</div>
+                <div class="card-number">stats</div>
+              </div>
               <div>
                 <div class="model-title">${escapeHtml(row.model)}</div>
-                <div class="model-subtitle">${fmt.format(row.session_count || 0)} sessions across ${fmt.format(row.project_count || 0)} projects</div>
+                <div class="model-subtitle">${fmt.format(row.session_count || 0)} sessions</div>
               </div>
+            </div>
+            <div class="card-back-body">
               <div class="mini-stats">
                 <div class="mini-stat"><strong>${escapeHtml(row.workflow_role || "Activity")}</strong><span>inferred role</span></div>
                 <div class="mini-stat"><strong>${escapeHtml(firstEdit)}</strong><span>median first action</span></div>
@@ -147,7 +147,6 @@ export function renderModelProfiles(rows) {
                 ${effort ? `<div class="stat-row"><span>effort</span><strong>${escapeHtml(effort)}</strong></div>` : ""}
                 <div class="stat-row"><span>skills</span><strong>${escapeHtml(skills || "none")}</strong></div>
                 <div class="stat-row"><span>executables</span><strong>${escapeHtml(executables || "none")}</strong></div>
-                <div class="stat-row"><span>projects</span><strong>${escapeHtml(projects || "none")}</strong></div>
               </div>
               <div class="model-tools">${escapeHtml(row.scouting_report || "")}</div>
               <div class="provenance"><span class="provenance-dot"></span>recorded + computed + inferred</div>
@@ -212,25 +211,10 @@ function rowStat(row, key) {
   return row.stats?.[key] || 0;
 }
 
-function renderMix(mix) {
-  const rows = (mix || []).slice(0, 5);
-  if (!rows.length)
-    return '<div class="model-tools">No tool mix recorded</div>';
-  return `<div class="mix-row">${rows
-    .map(
-      (item) => `
-    <div class="mix-pill" title="${escapeHtml(item.category)}: ${fmt.format(item.count)} actions&#10;${escapeHtml(item.description || "")}">
-      <strong>${escapeHtml(mixIcon(item.category))}</strong>
-      <span>${escapeHtml(item.category)}</span>
-      <span>${fmt.format(item.percent || 0)}%</span>
-    </div>
-  `,
-    )
-    .join("")}</div>`;
-}
-
 function renderBackStatMatrix(row) {
-  const modeProject = projectName(row.stats?.mode_project || "") || "none";
+  const meanDuration = formatDuration(rowStat(row, "mean_duration_seconds"));
+  const medianDuration = formatDuration(rowStat(row, "median_duration_seconds"));
+  const medianFirstTool = formatDuration(rowStat(row, "median_time_to_first_tool_seconds"));
   return `
     <div class="stat-matrix">
       <div class="matrix-row matrix-head"><div class="matrix-cell"></div><div class="matrix-cell">mean</div><div class="matrix-cell">median</div><div class="matrix-cell">mode</div></div>
@@ -238,7 +222,7 @@ function renderBackStatMatrix(row) {
       <div class="matrix-row"><div class="matrix-cell matrix-label">tools</div><div class="matrix-cell matrix-value">${compactNumber(rowStat(row, "mean_tool_calls_per_session"))}</div><div class="matrix-cell matrix-value">${compactNumber(rowStat(row, "median_tool_calls_per_session"))}</div><div class="matrix-cell matrix-value">${compactNumber(row.tool_calls)}</div></div>
       <div class="matrix-row"><div class="matrix-cell matrix-label">skills</div><div class="matrix-cell matrix-value">${compactNumber(rowStat(row, "mean_skill_calls_per_session"))}</div><div class="matrix-cell matrix-value">${compactNumber(rowStat(row, "median_skill_calls_per_session"))}</div><div class="matrix-cell matrix-value">${compactNumber(row.skill_calls || 0)}</div></div>
       <div class="matrix-row"><div class="matrix-cell matrix-label">tokens</div><div class="matrix-cell matrix-value">${compactNumber(rowStat(row, "mean_tokens_per_session"))}</div><div class="matrix-cell matrix-value">${compactNumber(rowStat(row, "median_tokens_per_session"))}</div><div class="matrix-cell matrix-value">${compactNumber(row.tokens.total_tokens || 0)}</div></div>
-      <div class="matrix-row"><div class="matrix-cell matrix-label">time</div><div class="matrix-cell matrix-value">${formatDuration(rowStat(row, "median_duration_seconds"))}</div><div class="matrix-cell matrix-value">${formatDuration(rowStat(row, "median_time_to_first_tool_seconds"))}</div><div class="matrix-cell matrix-value" title="${escapeHtml(modeProject)}">${escapeHtml(modeProject)}</div></div>
+      <div class="matrix-row"><div class="matrix-cell matrix-label">time</div><div class="matrix-cell matrix-value">${escapeHtml(meanDuration)}</div><div class="matrix-cell matrix-value">${escapeHtml(medianDuration)}</div><div class="matrix-cell matrix-value">${escapeHtml(medianFirstTool)}</div></div>
     </div>
   `;
 }
@@ -258,11 +242,4 @@ function renderToolMatrix(row) {
         .join("")}
     </div>
   `;
-}
-
-function mixIcon(category) {
-  const value = String(category || "?").trim();
-  if (!value) return "?";
-  if (value.startsWith("/") || value.includes("sh")) return ">_";
-  return value.slice(0, 1).toUpperCase();
 }

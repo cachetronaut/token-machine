@@ -1,13 +1,18 @@
+.model-cards-panel {
+  margin-top: 12px;
+  padding: 14px;
+}
+
 .model-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(188px, 220px));
+  grid-template-columns: repeat(auto-fill, minmax(176px, 204px));
   align-items: start;
   gap: 14px;
-  padding: 12px;
+  padding: 4px 0 0;
 }
 
 .model-card {
-  aspect-ratio: 2.5 / 3.5;
+  aspect-ratio: 2.45 / 3.35;
   padding: 0;
   border: 0;
   background: transparent;
@@ -18,7 +23,7 @@
   position: relative;
   width: 100%;
   height: 100%;
-  transition: transform .25s ease;
+  transition: transform .6s ease;
   transform-style: preserve-3d;
 }
 
@@ -28,10 +33,10 @@
   position: absolute;
   inset: 0;
   display: grid;
-  grid-template-rows: auto 78px minmax(0, 1fr);
+  grid-template-rows: auto 60px minmax(0, 1fr);
   gap: 6px;
   overflow: hidden;
-  padding: 9px;
+  padding: 8px;
   border: 1px solid color-mix(in srgb, var(--card-color), white 18%);
   border-radius: 8px;
   background: linear-gradient(145deg, color-mix(in srgb, var(--card-color), #0f1115 74%), #141922 58%);
@@ -53,6 +58,20 @@
   gap: 4px;
   background: linear-gradient(145deg, #151b24, color-mix(in srgb, var(--card-color), #10141c 80%));
   transform: rotateY(180deg);
+}
+
+.model-card-header {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  padding: 6px;
+  border: 1px solid rgba(255, 255, 255, .13);
+  border-radius: 6px;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--card-color), transparent 82%), rgba(8, 11, 15, .52));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .06);
 }
 
 .card-back-body {
@@ -77,8 +96,8 @@
 .provider-logo {
   display: grid;
   place-items: center;
-  width: 34px;
-  height: 34px;
+  width: 30px;
+  height: 30px;
   color: #fff;
   font-size: 13px;
   font-weight: 800;
@@ -87,8 +106,8 @@
 
 .provider-logo img,
 .provider-icon {
-  width: 30px;
-  height: 30px;
+  width: 26px;
+  height: 26px;
   object-fit: contain;
   filter: drop-shadow(0 2px 4px rgba(0, 0, 0, .38));
 }
@@ -125,8 +144,8 @@
 
 .model-icon {
   z-index: 1;
-  width: 52px;
-  height: 52px;
+  width: 48px;
+  height: 48px;
   object-fit: contain;
   filter: drop-shadow(0 8px 18px rgba(0, 0, 0, .35));
 }
@@ -152,7 +171,7 @@
   position: relative;
   z-index: 1;
   overflow-wrap: anywhere;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 800;
   line-height: 1.02;
 }
@@ -165,21 +184,6 @@
   line-height: 1.25;
 }
 
-.role-ribbon {
-  position: relative;
-  z-index: 1;
-  padding: 4px 6px;
-  border: 1px solid color-mix(in srgb, var(--card-color), white 26%);
-  border-radius: 4px;
-  background: color-mix(in srgb, var(--card-color), transparent 72%);
-  color: #fff;
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: .08em;
-  text-align: center;
-  text-transform: uppercase;
-}
-
 .level-badge {
   position: absolute;
   right: 12px;
@@ -187,16 +191,21 @@
   z-index: 2;
   display: grid;
   place-items: center;
-  width: 22px;
-  height: 22px;
+  width: 28px;
+  height: 28px;
+  border: 1px solid color-mix(in srgb, currentColor, white 22%);
+  border-radius: 50% 50% 50% 8px;
+  background:
+    radial-gradient(circle at 50% 35%, rgba(255, 255, 255, .18), transparent 42%),
+    rgba(8, 11, 15, .72);
   color: #fff;
   opacity: .94;
   filter: drop-shadow(0 2px 5px rgba(0, 0, 0, .42));
 }
 
 .level-badge svg {
-  width: 16px;
-  height: 16px;
+  width: 17px;
+  height: 17px;
 }
 
 .level-fast { color: var(--amber); }
@@ -238,33 +247,6 @@
   color: var(--muted);
   font-size: 11px;
   line-height: 1.35;
-}
-
-.mix-row {
-  position: relative;
-  z-index: 1;
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 4px;
-}
-
-.mix-pill {
-  display: grid;
-  place-items: center;
-  gap: 1px;
-  min-width: 0;
-  padding: 3px 2px;
-  border: 1px solid rgba(255, 255, 255, .12);
-  border-radius: 5px;
-  background: rgba(12, 16, 22, .44);
-  color: #dce1e5;
-  font-size: 8px;
-}
-
-.mix-pill strong {
-  color: #fff;
-  font-size: 11px;
-  line-height: 1;
 }
 
 .provenance {

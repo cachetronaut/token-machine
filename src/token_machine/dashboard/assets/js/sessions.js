@@ -57,7 +57,7 @@ export function renderSessions(sessions) {
           <div class="session-copy">
             <div class="timeline-main">
               <div class="timeline-project">${escapeHtml(project)}</div>
-              <span class="app-pill icon-only" style="--app-color:${color}" title="${escapeHtml(appLabel)}">${renderAppIcon(rollup.source)}</span>
+              <span class="app-pill icon-only app-pill-${escapeHtml(String(rollup.source || "unknown").toLowerCase())}" style="--app-color:${color}" title="${escapeHtml(appLabel)}">${renderAppIcon(rollup.source)}</span>
             </div>
             <div class="timeline-stats">
               <span><strong class="flip-count">${fmt.format(rollup.model_calls || 0)}</strong> model</span>

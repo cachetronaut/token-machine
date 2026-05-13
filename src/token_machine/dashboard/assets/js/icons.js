@@ -59,7 +59,9 @@ export function iconUrl(name) {
 export function iconClassName(name, baseClass) {
   const key = String(name || "").toLowerCase();
   const contrastClass =
-    key === "openai.svg" || key === "openrouter.svg" ? " icon-on-dark" : "";
+    key === "openai.svg" || key === "openrouter.svg" || key === "opencode.svg"
+      ? " icon-on-dark"
+      : "";
   return `${baseClass}${contrastClass}`;
 }
 

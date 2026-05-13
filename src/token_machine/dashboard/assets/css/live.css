@@ -57,7 +57,7 @@
     border-radius: 999px;
     background: var(--green);
     box-shadow: 0 0 18px rgba(88, 214, 141, .7);
-    animation: live-led-pulse 1.8s ease-in-out infinite;
+    animation: live-led-pulse var(--motion-cadence) ease-in-out infinite;
 }
 
 .live-led-idle {
@@ -68,7 +68,7 @@
 
 .live-led-error {
     background: var(--coral);
-    animation: live-led-error-pulse 1.6s ease-in-out infinite;
+    animation: live-led-error-pulse var(--motion-cadence) ease-in-out infinite;
     box-shadow: 0 0 18px rgba(255, 127, 110, .6);
 }
 
@@ -167,7 +167,7 @@
 }
 
 .live-lanes-updated .live-lane {
-    animation: live-data-pulse .48s ease-out;
+    animation: live-data-pulse .78s ease-out;
 }
 
 .live-lane {
@@ -279,7 +279,7 @@
 }
 
 .live-state-active::after {
-    animation: live-state-pulse 1.6s ease-out infinite;
+    animation: live-state-pulse var(--motion-cadence) ease-out infinite;
 }
 
 .live-state-stale {
@@ -300,7 +300,7 @@
 }
 
 .live-state-error::after {
-    animation: live-state-pulse 1.6s ease-out infinite;
+    animation: live-state-pulse var(--motion-cadence) ease-out infinite;
 }
 
 @keyframes live-state-pulse {
@@ -499,7 +499,7 @@
 }
 
 .live-tool-new {
-    animation: live-tool-enter .3s ease-out both;
+    animation: live-tool-enter .58s ease-out both;
 }
 
 .live-tool-agent {
@@ -518,7 +518,7 @@
 }
 
 .live-tool-current .live-tool-dot {
-    animation: live-tool-glow 1.45s ease-in-out infinite;
+    animation: live-tool-glow var(--motion-cadence) ease-in-out infinite;
 }
 
 .live-tool-agent .live-tool-dot {
@@ -553,7 +553,7 @@
 }
 
 .live-tool-new .live-tool-copy {
-    animation: live-tool-type .42s steps(18, end) both;
+    animation: live-tool-type .92s steps(18, end) both;
     animation-delay: calc(var(--tool-index, 0) * 70ms);
 }
 

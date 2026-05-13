@@ -92,21 +92,64 @@
   font-size: 12px;
 }
 
+.chart-axis-title {
+  fill: color-mix(in srgb, var(--muted), white 16%);
+  font-size: 11px;
+  font-weight: 720;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
 .chart-area {
   opacity: .26;
+}
+
+.chart-progress-clip {
+  transform-box: fill-box;
+  transform-origin: left center;
 }
 
 .chart-line {
   fill: none;
   stroke-linecap: round;
   stroke-linejoin: round;
-  stroke-width: 3;
+  stroke-width: 3.4;
   filter: drop-shadow(0 0 8px color-mix(in srgb, var(--chart-color, var(--teal)), transparent 42%));
 }
 
-.chart-dot {
+.chart-line-progress {
+  pointer-events: none;
+}
+
+.chart-ball {
+  pointer-events: none;
+}
+
+.chart-ball-halo {
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.chart-ball-dot {
   stroke: #10141c;
   stroke-width: 2;
+  filter: drop-shadow(0 0 12px color-mix(in srgb, var(--chart-color, var(--teal)), transparent 24%));
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.chart-motion-done .chart-ball-halo {
+  animation: chart-ball-halo-pulse var(--motion-cadence) ease-in-out infinite;
+}
+
+.chart-motion-done .chart-ball-dot {
+  animation: chart-ball-core-pulse var(--motion-cadence) ease-in-out infinite;
+}
+
+.chart-refresh,
+.chart-tab-switch {
+  animation: chart-switch .58s ease-out both;
 }
 
 .tooltip {
@@ -131,4 +174,57 @@
   display: block;
   margin-bottom: 3px;
   font-size: 13px;
+}
+
+@keyframes chart-ball-halo-pulse {
+  0%,
+  100% {
+    opacity: .08;
+    r: 7;
+    transform: scale(.82);
+  }
+
+  50% {
+    opacity: .42;
+    r: 14;
+    transform: scale(1.18);
+  }
+}
+
+@keyframes chart-ball-core-pulse {
+  0%,
+  100% {
+    opacity: .86;
+    r: 5.5;
+    transform: scale(1);
+    filter: drop-shadow(0 0 10px color-mix(in srgb, var(--chart-color, var(--teal)), transparent 34%));
+  }
+
+  50% {
+    opacity: 1;
+    r: 6.8;
+    transform: scale(1.12);
+    filter: drop-shadow(0 0 18px color-mix(in srgb, var(--chart-color, var(--teal)), transparent 12%));
+  }
+}
+
+@keyframes chart-switch {
+  from {
+    opacity: .58;
+    transform: translateY(4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chart-ball-halo,
+  .chart-ball-dot,
+  .chart-refresh,
+  .chart-tab-switch {
+    animation: none;
+  }
 }
