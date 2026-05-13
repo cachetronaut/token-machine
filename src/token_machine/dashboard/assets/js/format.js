@@ -25,7 +25,14 @@ export function formatDuration(seconds) {
 
 export function metric(id, value) {
   const element = document.getElementById(id);
-  element.textContent = compactNumber(value);
+  const nextValue = compactNumber(value);
+  if (element.dataset.ready === "true" && element.textContent !== nextValue) {
+    element.classList.remove("metric-value-refresh");
+    void element.offsetWidth;
+    element.classList.add("metric-value-refresh");
+  }
+  element.textContent = nextValue;
+  element.dataset.ready = "true";
   element.title = fmt.format(value || 0);
 }
 

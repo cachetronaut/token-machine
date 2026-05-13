@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from dataclasses import dataclass, field
 from pathlib import Path
 import threading
 import time
@@ -21,6 +22,42 @@ from token_machine.live.service import (
 from token_machine.metrics.profiles import dashboard_data
 from token_machine.models import jsonable
 from token_machine.storage.repository import AnalyticsRepository
+
+
+EventStoreSignature = tuple[tuple[str, int, int], ...]
+
+
+@dataclass
+class _SummaryCache:
+    repository: AnalyticsRepository
+    _lock: threading.Lock = field(default_factory=threading.Lock)
+    _signature: EventStoreSignature = ()
+    _payload: dict[str, object] | None = None
+
+    def get(self) -> dict[str, object]:
+        signature = self._event_store_signature()
+        with self._lock:
+            if self._payload is not None and signature == self._signature:
+                return self._payload
+            payload = jsonable(dashboard_data(self.repository.load_events()))
+            if not isinstance(payload, dict):
+                payload = {}
+            self._signature = signature
+            self._payload = payload
+            return payload
+
+    def _event_store_signature(self) -> EventStoreSignature:
+        events_dir = self.repository.events_dir
+        if not events_dir.exists():
+            return ()
+        rows: list[tuple[str, int, int]] = []
+        for path in sorted(events_dir.glob("*.jsonl")):
+            try:
+                stat = path.stat()
+            except FileNotFoundError:
+                continue
+            rows.append((path.name, stat.st_mtime_ns, stat.st_size))
+        return tuple(rows)
 
 
 class _LiveRefreshScheduler:
@@ -53,6 +90,7 @@ class _LiveRefreshScheduler:
 def dashboard_router(store: Path, *, live_targets: Sequence[Path] = ()) -> APIRouter:
     router = APIRouter()
     repository = AnalyticsRepository(store)
+    summary_cache = _SummaryCache(repository)
     live_refresh = _LiveRefreshScheduler(live_targets, store)
 
     @router.get("/", response_class=HTMLResponse)
@@ -61,8 +99,7 @@ def dashboard_router(store: Path, *, live_targets: Sequence[Path] = ()) -> APIRo
 
     @router.get("/api/summary")
     def summary() -> JSONResponse:
-        data = dashboard_data(repository.load_events())
-        return JSONResponse(jsonable(data))
+        return JSONResponse(summary_cache.get())
 
     @router.get("/api/live")
     def live() -> JSONResponse:

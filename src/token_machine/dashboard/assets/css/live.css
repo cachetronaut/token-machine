@@ -57,15 +57,18 @@
     border-radius: 999px;
     background: var(--green);
     box-shadow: 0 0 18px rgba(88, 214, 141, .7);
+    animation: live-led-pulse 1.8s ease-in-out infinite;
 }
 
 .live-led-idle {
     background: var(--muted);
+    animation: none;
     box-shadow: none;
 }
 
 .live-led-error {
     background: var(--coral);
+    animation: live-led-error-pulse 1.6s ease-in-out infinite;
     box-shadow: 0 0 18px rgba(255, 127, 110, .6);
 }
 
@@ -187,6 +190,30 @@
     to {
         background-color: transparent;
         box-shadow: inset 3px 0 0 var(--live-color);
+    }
+}
+
+@keyframes live-led-pulse {
+    0%,
+    100% {
+        opacity: .72;
+        box-shadow: 0 0 12px rgba(88, 214, 141, .38);
+    }
+    50% {
+        opacity: 1;
+        box-shadow: 0 0 24px rgba(88, 214, 141, .78);
+    }
+}
+
+@keyframes live-led-error-pulse {
+    0%,
+    100% {
+        opacity: .76;
+        box-shadow: 0 0 12px rgba(255, 127, 110, .36);
+    }
+    50% {
+        opacity: 1;
+        box-shadow: 0 0 24px rgba(255, 127, 110, .74);
     }
 }
 
@@ -614,5 +641,15 @@
 
     .live-lanes {
         grid-template-columns: 1fr;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .live-led,
+    .live-led-error,
+    .live-state-active::after,
+    .live-tool-dot,
+    .live-lanes-updated .live-lane {
+        animation: none;
     }
 }

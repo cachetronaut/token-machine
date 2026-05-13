@@ -21,30 +21,37 @@ import {
 export function renderBars(
   id,
   values,
-  includeDescriptions = false,
-  descriptions = {},
+  options = {},
 ) {
   const root = document.getElementById(id);
   const entries = topEntries(values);
   if (!entries.length) {
     root.innerHTML = '<div class="eyebrow">No data yet</div>';
+    renderRankInsight(options.insightId, `No ${options.noun || "activity"} calls yet.`);
     return;
   }
   const max = Math.max(...entries.map(([, count]) => count), 1);
   root.innerHTML = entries
     .map(
-      ([name, count]) => `
+      ([name, count]) => {
+        const width = Math.max(3, (count / max) * 100);
+        const description = options.descriptions?.[name] || "";
+        return `
     <div class="bar-row" title="${escapeHtml(name)}">
-      <div>
-        <div class="bar-label">${escapeHtml(name)}</div>
-        ${includeDescriptions && descriptions[name] ? `<div class="bar-desc">${escapeHtml(descriptions[name])}</div>` : ""}
+      <div class="bar-main">
+        <div class="bar-top">
+          <div class="bar-label">${escapeHtml(name)}</div>
+          <div class="bar-value">${fmt.format(count)}</div>
+        </div>
+        <div class="bar-track"><div class="bar-fill" style="width:${width}%"></div></div>
+        ${description ? `<div class="bar-desc">${escapeHtml(description)}</div>` : ""}
       </div>
-      <div class="bar-track"><div class="bar-fill" style="width:${Math.max(3, (count / max) * 100)}%"></div></div>
-      <div>${fmt.format(count)}</div>
     </div>
-  `,
+  `;
+      },
     )
     .join("");
+  renderRankInsight(options.insightId, rankInsight(entries, options));
 }
 
 export function renderAppLegend(sources) {
@@ -162,6 +169,18 @@ function renderProviderLogo(row) {
 
 function renderModelHero(row) {
   return renderModelIcon(row);
+}
+
+function renderRankInsight(id, text) {
+  const element = document.getElementById(id);
+  if (element) element.textContent = text;
+}
+
+function rankInsight(entries, options) {
+  const [[name, count]] = entries;
+  const total = entries.reduce((sum, [, value]) => sum + value, 0);
+  const share = total ? Math.round((count / total) * 100) : 0;
+  return `${options.subject || "Local activity"} is led by ${name} with ${compactNumber(count)} ${options.noun || "actions"} calls (${share}% of top rows).`;
 }
 
 function modelCardColor(row) {

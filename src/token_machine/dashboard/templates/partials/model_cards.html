@@ -4,14 +4,33 @@
     type="button"
     data-section-toggle="model-cards-section"
     aria-expanded="false"
-    aria-controls="model-profiles"
+    aria-controls="model-profiles-wrap"
   >
     <span class="live-toggle-icon" aria-hidden="true"></span>
     <span class="section-led" aria-hidden="true"></span>
     <span class="section-copy">
-      <span class="section-title">Model cards</span>
-      <span class="section-subline">Aggregated usage by model</span>
+      <span class="section-title">Models</span>
+      <span class="section-subline">Distribution and model-level behavior</span>
     </span>
   </button>
-  <div class="model-grid section-body" id="model-profiles"></div>
+  <div class="models-body section-body" id="model-profiles-wrap">
+    <div class="model-overview">
+      <div class="card ops-card">
+        <div class="chart-head">
+          <div><h2>Model distribution</h2><span class="eyebrow">Call distribution</span></div>
+          <span class="ops-badge">fleet</span>
+        </div>
+        <div class="model-dist">
+          <div class="donut" id="models-donut"></div>
+          <div class="legend-grid" id="models"></div>
+        </div>
+        <div class="insight-line" id="models-insight">Awaiting model traffic</div>
+      </div>
+    </div>
+    <div class="subsection-head">
+      <span class="subsection-kicker">Model cards</span>
+      <span>Aggregated usage by model</span>
+    </div>
+    <div class="model-grid" id="model-profiles"></div>
+  </div>
 </section>

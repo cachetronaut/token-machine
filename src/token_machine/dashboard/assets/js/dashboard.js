@@ -13,6 +13,54 @@ import { renderAppLegend, renderBars, renderModelProfiles } from "./models.js";
 import { initSectionToggles } from "./sections.js";
 import { renderSessions } from "./sessions.js";
 
+const chartModes = {
+  "daily-chart": "tokens",
+  "hourly-chart": "events",
+};
+
+const chartMetricConfig = {
+  "daily-chart": {
+    tokens: {
+      value: (row) => row.summary?.tokens?.total_tokens || 0,
+      color: "#43c7b7",
+      unit: "tokens",
+      subject: "Token flow",
+    },
+    skills: {
+      value: (row) => row.summary?.skill_calls || 0,
+      color: "#58d68d",
+      unit: "skill calls",
+      subject: "Field-agent skill usage",
+    },
+    commands: {
+      value: (row) => row.summary?.command_calls || 0,
+      color: "#ff7f6e",
+      unit: "commands",
+      subject: "Command substrate",
+    },
+  },
+  "hourly-chart": {
+    events: {
+      value: (row) => row.summary?.event_count || 0,
+      color: "#f6c453",
+      unit: "events",
+      subject: "Recent activity",
+    },
+    tools: {
+      value: (row) => row.summary?.event_types?.tool_call || 0,
+      color: "#43c7b7",
+      unit: "tool calls",
+      subject: "Tool usage",
+    },
+    commands: {
+      value: (row) => row.summary?.command_calls || 0,
+      color: "#ff7f6e",
+      unit: "commands",
+      subject: "Command substrate",
+    },
+  },
+};
+
 async function refresh(signal) {
   try {
     const data = await fetchSummary({ signal });
@@ -21,27 +69,28 @@ async function refresh(signal) {
     metric("events", summary.event_count);
     metric("model-calls", summary.event_types.model_call || 0);
     metric("tokens", summary.tokens.total_tokens || 0);
-    renderChart(
-      "daily-chart",
-      data.daily,
-      (row) => row.summary?.tokens?.total_tokens || 0,
-      "#43c7b7",
-      "#43c7b7",
-      "day",
-    );
-    renderChart(
-      "hourly-chart",
-      data.hourly,
-      (row) => row.summary?.event_count || 0,
-      "#f6c453",
-      "#f6c453",
-      "hour",
-    );
+    renderMetricChart("daily-chart", data.daily, "day", "daily-chart-insight");
+    renderMetricChart("hourly-chart", data.hourly, "hour", "hourly-chart-insight");
     renderModelDistribution(summary.models);
     renderAppLegend(summary.sources);
-    renderBars("tools", summary.tools, true, summary.descriptions);
-    renderBars("skills", summary.skills || {}, true, summary.descriptions);
-    renderBars("executables", summary.executables || summary.clis, true, summary.descriptions);
+    renderBars("tools", summary.tools, {
+      descriptions: summary.descriptions,
+      insightId: "tools-insight",
+      noun: "tool",
+      subject: "Harness surface",
+    });
+    renderBars("skills", summary.skills || {}, {
+      descriptions: summary.descriptions,
+      insightId: "skills-insight",
+      noun: "skill",
+      subject: "Field-agent pattern",
+    });
+    renderBars("executables", summary.executables || summary.clis, {
+      descriptions: summary.descriptions,
+      insightId: "executables-insight",
+      noun: "executable",
+      subject: "Command substrate",
+    });
     renderModelProfiles(data.model_profiles);
     renderSessions(data.recent_sessions);
     const updatedAt = new Date(data.generated_at).toLocaleTimeString([], {
@@ -53,6 +102,21 @@ async function refresh(signal) {
     if (error?.name === "AbortError") return;
     text("status", "Disconnected");
   }
+}
+
+function renderMetricChart(id, points, labelKey, insightId) {
+  const mode = chartModes[id];
+  const config = chartMetricConfig[id][mode];
+  renderChart(id, points, config.value, config.color, config.color, labelKey, {
+    insightId,
+    labelKey,
+    unit: config.unit,
+    subject: config.subject,
+  });
+  document.querySelectorAll(`[data-chart-mode="${id}"]`).forEach((button) => {
+    button.classList.toggle("active", button.dataset.chartValue === mode);
+    button.closest(".ops-card")?.style.setProperty("--ops-color", config.color);
+  });
 }
 
 async function refreshLive(signal) {
@@ -71,3 +135,9 @@ startDebugReloadPolling(() => {
   refreshLive();
 });
 initSectionToggles();
+document.querySelectorAll("[data-chart-mode]").forEach((button) => {
+  button.addEventListener("click", () => {
+    chartModes[button.dataset.chartMode] = button.dataset.chartValue;
+    refresh();
+  });
+});

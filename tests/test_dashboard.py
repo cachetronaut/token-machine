@@ -65,6 +65,12 @@ def test_fastapi_dashboard_routes_return_html_and_summary(tmp_path: Path) -> Non
     assert "recent-sessions" in html_response.text
     assert "daily-chart" in html_response.text
     assert "hourly-chart" in html_response.text
+    assert "Signal charts" in html_response.text
+    assert "model-profiles-wrap" in html_response.text
+    assert html_response.text.index(
+        '<section class="metrics">'
+    ) < html_response.text.index('id="live-console"')
+    assert "rankings" not in html_response.text
     assert summary_response.status_code == 200
     payload = summary_response.json()
     assert payload["summary"]["sessions"] == 1
@@ -186,16 +192,16 @@ def test_dashboard_live_surface_polls_live_api_and_debug_reload() -> None:
 
 
 def test_dashboard_renames_cli_surface_to_executables() -> None:
-    rankings_html = Path(
-        "src/token_machine/dashboard/templates/partials/rankings.html"
+    charts_html = Path(
+        "src/token_machine/dashboard/templates/partials/charts.html"
     ).read_text(encoding="utf-8")
     dashboard_js = Path("src/token_machine/dashboard/assets/js/dashboard.js").read_text(
         encoding="utf-8"
     )
 
-    assert "<h2>Executables</h2>" in rankings_html
-    assert "<h2>Skills</h2>" in rankings_html
-    assert "<h2>CLIs</h2>" not in rankings_html
+    assert "<h2>Executables</h2>" in charts_html
+    assert "<h2>Skills</h2>" in charts_html
+    assert "<h2>CLIs</h2>" not in charts_html
     assert 'renderBars("executables"' in dashboard_js
     assert 'renderBars("skills"' in dashboard_js
 

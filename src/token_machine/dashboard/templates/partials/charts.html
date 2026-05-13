@@ -1,10 +1,67 @@
-<section class="charts">
-  <div class="card">
-    <div class="chart-head"><h2>Daily token flow</h2><span class="eyebrow">Last 30 active days</span></div>
-    <svg id="daily-chart" role="img" aria-label="Daily token flow"></svg>
-  </div>
-  <div class="card">
-    <div class="chart-head"><h2>Recent activity</h2><span class="eyebrow">Last 24 active hours</span></div>
-    <svg id="hourly-chart" role="img" aria-label="Hourly activity"></svg>
+<section class="dashboard-section section-open" id="charts-section">
+  <button
+    class="section-strip"
+    type="button"
+    data-section-toggle="charts-section"
+    aria-expanded="true"
+    aria-controls="charts-grid"
+  >
+    <span class="live-toggle-icon" aria-hidden="true"></span>
+    <span class="section-led section-led-pulse" aria-hidden="true"></span>
+    <span class="section-copy">
+      <span class="section-title">Signal charts</span>
+      <span class="section-subline">Tokens, skills, tools, commands</span>
+    </span>
+  </button>
+  <div class="signal-body section-body" id="charts-grid">
+    <div class="charts">
+      <div class="card ops-card ops-card-active">
+        <div class="chart-head">
+          <div>
+            <h2>Daily flow</h2>
+            <span class="eyebrow">Last 30 active days</span>
+          </div>
+          <div class="metric-toggle" role="group" aria-label="Daily chart metric">
+            <button class="metric-toggle-button active" type="button" data-chart-mode="daily-chart" data-chart-value="tokens">Tokens</button>
+            <button class="metric-toggle-button" type="button" data-chart-mode="daily-chart" data-chart-value="skills">Skills</button>
+            <button class="metric-toggle-button" type="button" data-chart-mode="daily-chart" data-chart-value="commands">Cmds</button>
+          </div>
+        </div>
+        <svg id="daily-chart" role="img" aria-label="Daily token flow"></svg>
+        <div class="insight-line" id="daily-chart-insight">Awaiting local activity</div>
+      </div>
+      <div class="card ops-card ops-card-active">
+        <div class="chart-head">
+          <div>
+            <h2>Recent activity</h2>
+            <span class="eyebrow">Last 24 active hours</span>
+          </div>
+          <div class="metric-toggle" role="group" aria-label="Hourly chart metric">
+            <button class="metric-toggle-button active" type="button" data-chart-mode="hourly-chart" data-chart-value="events">Events</button>
+            <button class="metric-toggle-button" type="button" data-chart-mode="hourly-chart" data-chart-value="tools">Tools</button>
+            <button class="metric-toggle-button" type="button" data-chart-mode="hourly-chart" data-chart-value="commands">Cmds</button>
+          </div>
+        </div>
+        <svg id="hourly-chart" role="img" aria-label="Hourly activity"></svg>
+        <div class="insight-line" id="hourly-chart-insight">Awaiting live agent activity</div>
+      </div>
+    </div>
+    <div class="rank-grid signal-rank-grid">
+      <div class="card ops-card rank-card rank-tools">
+        <div class="chart-head"><div><h2>Tools</h2><span class="eyebrow">Harness surfaces</span></div><span class="ops-badge">tool</span></div>
+        <div id="tools"></div>
+        <div class="insight-line" id="tools-insight">No tool calls yet</div>
+      </div>
+      <div class="card ops-card rank-card rank-skills">
+        <div class="chart-head"><div><h2>Skills</h2><span class="eyebrow">Field-agent patterns</span></div><span class="ops-badge">skill</span></div>
+        <div id="skills"></div>
+        <div class="insight-line" id="skills-insight">No skill calls yet</div>
+      </div>
+      <div class="card ops-card rank-card rank-executables">
+        <div class="chart-head"><div><h2>Executables</h2><span class="eyebrow">Command substrate</span></div><span class="ops-badge">exec</span></div>
+        <div id="executables"></div>
+        <div class="insight-line" id="executables-insight">No executable calls yet</div>
+      </div>
+    </div>
   </div>
 </section>

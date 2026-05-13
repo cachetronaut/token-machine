@@ -57,24 +57,31 @@ export function renderModelDistribution(values) {
   const donut = document.getElementById("models-donut");
   const legend = document.getElementById("models");
   if (!entries.length || !total) {
-    donut.style.background = "conic-gradient(var(--line) 0 100%)";
-    donut.innerHTML = '<div class="donut-total"><span>No data</span></div>';
+    donut.innerHTML = `
+      <svg class="donut-svg" viewBox="0 0 200 200" aria-hidden="true">
+        <path class="donut-segment" d="${donutSlicePath(0, 99.999, 92, 46)}" fill="rgba(255, 255, 255, .065)"></path>
+      </svg>
+      <div class="donut-total"><span>No data</span></div>
+    `;
     legend.innerHTML = '<div class="eyebrow">No model calls yet</div>';
+    setInsight("models-insight", "No model traffic recorded yet.");
     return;
   }
 
   let cursor = 0;
   const segments = [];
-  const slices = entries.map(([name, count]) => {
+  entries.forEach(([name, count]) => {
     const start = cursor;
     cursor += (count / total) * 100;
     const end = cursor;
     segments.push({ name, count, start, end, provider: providerForModel(name) });
-    return `${modelColor(name)} ${start.toFixed(2)}% ${end.toFixed(2)}%`;
   });
 
-  donut.style.background = `conic-gradient(${slices.join(", ")})`;
-  donut.innerHTML = `<div class="donut-total"><div><strong>${compactNumber(total)}</strong><span>calls</span></div></div>`;
+  donut.style.setProperty("--chart-color", modelColor(entries[0][0]));
+  donut.innerHTML = `
+    ${donutSvg(segments)}
+    <div class="donut-total"><div><strong>${compactNumber(total)}</strong><span>calls</span></div></div>
+  `;
   donut.onmousemove = (event) => {
     const rect = donut.getBoundingClientRect();
     const x = event.clientX - rect.left - rect.width / 2;
@@ -94,30 +101,79 @@ export function renderModelDistribution(values) {
       <span>${compactNumber(count)}</span>
     </div>
   `).join("");
+  setInsight("models-insight", `${providerForModel(entries[0][0])} leads the local agent fleet with ${compactNumber(entries[0][1])} model calls.`);
 }
 
-export function renderChart(id, points, getValue, lineColor, fillColor, labelKey) {
+function donutSvg(segments) {
+  const outerRadius = 92;
+  const innerRadius = 46;
+  const slices = segments.map((segment) => {
+    return `
+      <path
+        class="donut-segment"
+        d="${donutSlicePath(segment.start, segment.end, outerRadius, innerRadius)}"
+        fill="${modelColor(segment.name)}"
+      ></path>
+    `;
+  }).join("");
+  return `
+    <svg class="donut-svg" viewBox="0 0 200 200" aria-hidden="true">
+      ${slices}
+    </svg>
+  `;
+}
+
+function donutSlicePath(startPercent, endPercent, outerRadius, innerRadius) {
+  const startAngle = startPercent / 100 * 360 - 90;
+  const endAngle = endPercent / 100 * 360 - 90;
+  const largeArc = endAngle - startAngle > 180 ? 1 : 0;
+  const outerStart = polarPoint(100, 100, outerRadius, startAngle);
+  const outerEnd = polarPoint(100, 100, outerRadius, endAngle);
+  const innerEnd = polarPoint(100, 100, innerRadius, endAngle);
+  const innerStart = polarPoint(100, 100, innerRadius, startAngle);
+  return [
+    `M ${outerStart.x} ${outerStart.y}`,
+    `A ${outerRadius} ${outerRadius} 0 ${largeArc} 1 ${outerEnd.x} ${outerEnd.y}`,
+    `L ${innerEnd.x} ${innerEnd.y}`,
+    `A ${innerRadius} ${innerRadius} 0 ${largeArc} 0 ${innerStart.x} ${innerStart.y}`,
+    "Z",
+  ].join(" ");
+}
+
+function polarPoint(cx, cy, radius, angle) {
+  const radians = angle * Math.PI / 180;
+  return {
+    x: (cx + radius * Math.cos(radians)).toFixed(3),
+    y: (cy + radius * Math.sin(radians)).toFixed(3),
+  };
+}
+
+export function renderChart(id, points, getValue, lineColor, fillColor, labelKey, options = {}) {
   const root = document.getElementById(id);
-  root.innerHTML = chartSvg(points, getValue, lineColor, fillColor, labelKey);
+  root.style.setProperty("--chart-color", lineColor);
+  root.innerHTML = chartSvg(points, getValue, lineColor, fillColor, labelKey, options);
   const hit = root.querySelector(".chart-hit");
   if (hit && points.length) {
     hit.addEventListener("mousemove", (event) => {
       const rect = root.getBoundingClientRect();
       const ratio = Math.max(0, Math.min(1, (event.clientX - rect.left) / Math.max(rect.width, 1)));
       const index = Math.round(ratio * (points.length - 1));
-      showChartTooltip(event, id, points[index], getValue, labelKey);
+      showChartTooltip(event, id, points[index], getValue, labelKey, options);
     });
     hit.addEventListener("mouseleave", hideTooltip);
   }
   root.querySelectorAll(".chart-dot").forEach((dot) => {
     dot.addEventListener("mousemove", (event) => {
-      showChartTooltip(event, id, points[Number(dot.dataset.index)], getValue, labelKey);
+      showChartTooltip(event, id, points[Number(dot.dataset.index)], getValue, labelKey, options);
     });
     dot.addEventListener("mouseleave", hideTooltip);
   });
+  if (options.insightId) {
+    setInsight(options.insightId, chartInsight(points, getValue, options));
+  }
 }
 
-function chartSvg(points, getValue, lineColor, fillColor, labelKey) {
+function chartSvg(points, getValue, lineColor, fillColor, labelKey, options) {
   const width = 760;
   const height = 260;
   const pad = { top: 18, right: 18, bottom: 34, left: 54 };
@@ -137,7 +193,7 @@ function chartSvg(points, getValue, lineColor, fillColor, labelKey) {
   const area = `${pad.left},${pad.top + innerH} ${line} ${pad.left + innerW},${pad.top + innerH}`;
   const grid = [0, .25, .5, .75, 1].map((tick) => {
     const y = pad.top + innerH - tick * innerH;
-    return `<line x1="${pad.left}" y1="${y}" x2="${pad.left + innerW}" y2="${y}" stroke="#27303a" stroke-width="1"/>`;
+    return `<line class="chart-grid-line" x1="${pad.left}" y1="${y}" x2="${pad.left + innerW}" y2="${y}"/>`;
   }).join("");
   const dots = xy.map(([x, y], index) => `
     <circle class="chart-dot" data-index="${index}" cx="${x}" cy="${y}" r="5" fill="${lineColor}"></circle>
@@ -147,24 +203,40 @@ function chartSvg(points, getValue, lineColor, fillColor, labelKey) {
   return `
     <svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="none">
       ${grid}
-      <text x="${pad.left}" y="14" fill="#9da4ad" font-size="12">${fmt.format(max)}</text>
-      <polygon points="${area}" fill="${fillColor}" opacity="0.28"></polygon>
-      <polyline points="${line}" fill="none" stroke="${lineColor}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></polyline>
+      <text class="chart-axis-label" x="${pad.left}" y="14">${fmt.format(max)} ${escapeHtml(options.unit || "")}</text>
+      <polygon class="chart-area" points="${area}" fill="${fillColor}"></polygon>
+      <polyline class="chart-line" points="${line}" stroke="${lineColor}"></polyline>
       ${dots}
-      <text x="${pad.left}" y="${height - 10}" fill="#9da4ad" font-size="12">${escapeHtml(firstLabel)}</text>
-      <text x="${pad.left + innerW}" y="${height - 10}" fill="#9da4ad" font-size="12" text-anchor="end">${escapeHtml(lastLabel)}</text>
+      <text class="chart-axis-label" x="${pad.left}" y="${height - 10}">${escapeHtml(firstLabel)}</text>
+      <text class="chart-axis-label" x="${pad.left + innerW}" y="${height - 10}" text-anchor="end">${escapeHtml(lastLabel)}</text>
       <rect class="chart-hit" x="0" y="0" width="${width}" height="${height}" fill="transparent"></rect>
     </svg>
   `;
 }
 
-function showChartTooltip(event, id, row, getValue, labelKey) {
+function showChartTooltip(event, id, row, getValue, labelKey, options = {}) {
   const value = getValue(row);
   const eventTypes = row.summary?.event_types || {};
   const modelCalls = eventTypes.model_call || 0;
   const toolCalls = eventTypes.tool_call || 0;
-  const unit = id === "daily-chart" ? "tokens" : "events";
+  const unit = options.unit || (id === "daily-chart" ? "tokens" : "events");
   showTooltip(event, `<strong>${escapeHtml(row[labelKey])}</strong>${fmt.format(value)} ${unit}<br>${fmt.format(modelCalls)} model calls<br>${fmt.format(toolCalls)} tool calls`);
+}
+
+function chartInsight(points, getValue, options) {
+  if (!points.length) return options.emptyInsight || "No local agent activity in this window.";
+  const entries = points.map((point) => ({ point, value: getValue(point) }));
+  const total = entries.reduce((sum, item) => sum + item.value, 0);
+  if (!total) return options.emptyInsight || "No local agent activity in this window.";
+  const peak = entries.reduce((best, item) => item.value > best.value ? item : best, entries[0]);
+  const label = peak.point?.[options.labelKey || "day"] || "window";
+  const unit = options.unit || "events";
+  return `${options.subject || "Local agents"} peaked at ${compactNumber(peak.value)} ${unit} on ${escapeHtml(label)}.`;
+}
+
+function setInsight(id, text) {
+  const element = document.getElementById(id);
+  if (element) element.textContent = text;
 }
 
 function providerForModel(model) {
