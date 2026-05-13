@@ -12,7 +12,6 @@ import {
   iconClassName,
   iconUrl,
   renderAppIcon,
-  renderModelBadgeIcon,
   renderModelIcon,
   sourceIconName,
 } from "./icons.js";
@@ -128,8 +127,7 @@ export function renderModelProfiles(rows) {
           <div class="card-face card-back">
             <div class="model-card-header">
               <div class="card-topline">
-                <div class="provider-logo">${renderModelBadgeIcon(row)}</div>
-                <div class="card-number">stats</div>
+                <div class="card-number">intelligence</div>
               </div>
               <div>
                 <div class="model-title">${escapeHtml(row.model)}</div>
@@ -137,6 +135,7 @@ export function renderModelProfiles(rows) {
               </div>
             </div>
             <div class="card-back-body">
+              ${renderIntelligenceBadges(row)}
               <div class="mini-stats">
                 <div class="mini-stat"><strong>${escapeHtml(row.workflow_role || "Activity")}</strong><span>inferred role</span></div>
                 <div class="mini-stat"><strong>${escapeHtml(firstEdit)}</strong><span>median first action</span></div>
@@ -151,7 +150,6 @@ export function renderModelProfiles(rows) {
               <div class="model-tools">${escapeHtml(row.scouting_report || "")}</div>
               <div class="provenance"><span class="provenance-dot"></span>recorded + computed + inferred</div>
             </div>
-            ${levelIcon(row.intelligence_level)}
           </div>
         </div>
       </div>
@@ -191,20 +189,38 @@ function modelCardColor(row) {
   return appColor(row.source) || colorFor(key);
 }
 
-function levelIcon(level) {
-  const key = String(level || "unclassified").toLowerCase();
-  const icons = {
-    fast: '<path d="M11.251.068a.5.5 0 0 1 .227.58L9.677 6.5H13a.5.5 0 0 1 .364.843l-8 8.5a.5.5 0 0 1-.842-.49L6.323 9.5H3a.5.5 0 0 1-.364-.843l8-8.5a.5.5 0 0 1 .615-.09z"/>',
-    frontier:
-      '<path d="M7.657 6.247c.11-.33.576-.33.686 0l.645 1.937a2.89 2.89 0 0 0 1.829 1.828l1.936.645c.33.11.33.576 0 .686l-1.937.645a2.89 2.89 0 0 0-1.828 1.829l-.645 1.936a.361.361 0 0 1-.686 0l-.645-1.937a2.89 2.89 0 0 0-1.828-1.828l-1.937-.645a.361.361 0 0 1 0-.686l1.937-.645a2.89 2.89 0 0 0 1.828-1.828zM3.794 1.148a.217.217 0 0 1 .412 0l.387 1.162c.173.518.579.924 1.097 1.097l1.162.387a.217.217 0 0 1 0 .412l-1.162.387A1.73 1.73 0 0 0 4.593 5.69l-.387 1.162a.217.217 0 0 1-.412 0L3.407 5.69A1.73 1.73 0 0 0 2.31 4.593l-1.162-.387a.217.217 0 0 1 0-.412l1.162-.387A1.73 1.73 0 0 0 3.407 2.31z"/>',
-    balanced:
-      '<path d="M8 4a.5.5 0 0 1 .5.5V6a.5.5 0 0 1-1 0V4.5A.5.5 0 0 1 8 4M3.732 5.732a.5.5 0 0 1 .707 0l.915.914a.5.5 0 1 1-.708.708l-.914-.915a.5.5 0 0 1 0-.707M2 10a.5.5 0 0 1 .5-.5h1.586a.5.5 0 0 1 0 1H2.5A.5.5 0 0 1 2 10m9.5 0a.5.5 0 0 1 .5-.5h1.5a.5.5 0 0 1 0 1H12a.5.5 0 0 1-.5-.5m.754-4.268a.5.5 0 0 1 0 .707l-.915.915a.5.5 0 0 1-.707-.708l.914-.914a.5.5 0 0 1 .708 0"/><path d="M6.664 10.89a.5.5 0 0 1-.11-.696l2.5-3.5a.5.5 0 0 1 .806.592l-2.5 3.5a.5.5 0 0 1-.696.104"/><path fill-rule="evenodd" d="M8 1a7 7 0 0 0-7 7c0 1.676.59 3.216 1.574 4.42.18.22.452.33.736.33h9.38c.284 0 .556-.11.736-.33A6.97 6.97 0 0 0 15 8a7 7 0 0 0-7-7m0 1a6 6 0 0 1 4.889 9.474l-.15.276H3.26l-.15-.276A6 6 0 0 1 8 2"/>',
-    unclassified:
-      '<path d="M5.255 5.786a.237.237 0 0 0 .241.247h.825c.138 0 .248-.113.266-.25.09-.656.54-1.134 1.342-1.134.686 0 1.314.343 1.314 1.168 0 .635-.374.927-.965 1.371-.673.489-1.206 1.06-1.168 1.987l.003.217a.25.25 0 0 0 .25.246h.811a.25.25 0 0 0 .25-.25v-.105c0-.718.273-.927 1.01-1.486.609-.463 1.244-.977 1.244-2.056 0-1.511-1.276-2.241-2.673-2.241-1.267 0-2.655.59-2.75 2.29m1.557 5.763c0 .533.425.927 1.01.927.609 0 1.028-.394 1.028-.927 0-.552-.42-.94-1.029-.94-.584 0-1.009.388-1.009.94"/>',
-  };
-  const path = icons[key] || icons.unclassified;
-  const label = key.charAt(0).toUpperCase() + key.slice(1);
-  return `<span class="level-badge level-${escapeHtml(key)}" title="${escapeHtml(label)}" aria-label="${escapeHtml(label)}"><svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">${path}</svg></span>`;
+function renderIntelligenceBadges(row) {
+  const level = badgeLabel(row.intelligence_level || "unclassified");
+  const role = badgeLabel(row.workflow_role || "activity");
+  const toolMultiplier = multiplier(row.tool_calls, row.model_calls);
+  const skillMultiplier = multiplier(row.skill_calls || 0, row.session_count || 0);
+  const badges = [
+    ["level", level],
+    ["role", role],
+    ["tools", `${toolMultiplier}x tools`],
+    ["skills", `${skillMultiplier}x skills`],
+  ];
+  return `
+    <div class="intelligence-badges" aria-label="Model intelligence badges">
+      ${badges
+        .map(
+          ([label, value]) =>
+            `<span class="intelligence-badge"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong></span>`,
+        )
+        .join("")}
+    </div>
+  `;
+}
+
+function badgeLabel(value) {
+  return String(value || "unknown")
+    .replace(/[_-]+/g, " ")
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function multiplier(count, base) {
+  if (!count || !base) return "1.0";
+  return Math.min(2, Math.max(1, count / base)).toFixed(1);
 }
 
 function rowStat(row, key) {

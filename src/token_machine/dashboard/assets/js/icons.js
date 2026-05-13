@@ -77,10 +77,3 @@ export function renderModelIcon(row) {
   if (!icon) return `<div class="model-glyph">${initials}</div>`;
   return `<img class="${iconClassName(icon, "model-icon")}" src="${iconUrl(icon)}" alt="" loading="lazy" decoding="async" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><div class="model-glyph" hidden>${initials}</div>`;
 }
-
-export function renderModelBadgeIcon(row) {
-  const initials = escapeHtml(modelInitials(row));
-  const icon = modelIconName(row);
-  if (!icon) return `<span class="provider-glyph">${initials}</span>`;
-  return `<img class="${iconClassName(icon, "provider-icon")}" src="${iconUrl(icon)}" alt="" loading="lazy" decoding="async" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><span class="provider-glyph" hidden>${initials}</span>`;
-}

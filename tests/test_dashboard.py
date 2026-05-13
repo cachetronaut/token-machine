@@ -219,10 +219,12 @@ def test_dashboard_icon_mappings_include_zed_and_openrouter_models() -> None:
     assert "icon-on-dark" in icons_js
 
 
-def test_model_card_back_uses_model_badge_icon() -> None:
+def test_model_card_back_uses_intelligence_badges_without_corner_icon() -> None:
     models_js = Path("src/token_machine/dashboard/assets/js/models.js").read_text(
         encoding="utf-8"
     )
 
     assert '<div class="provider-logo">${renderProviderLogo(row)}</div>' in models_js
-    assert '<div class="provider-logo">${renderModelBadgeIcon(row)}</div>' in models_js
+    assert "renderIntelligenceBadges(row)" in models_js
+    assert "renderModelBadgeIcon" not in models_js
+    assert "levelIcon" not in models_js
