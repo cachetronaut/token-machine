@@ -4,6 +4,54 @@
     inherits: false;
 }
 
+@property --draw-top {
+    syntax: '<number>';
+    initial-value: 0;
+    inherits: true;
+}
+
+@property --draw-right {
+    syntax: '<number>';
+    initial-value: 0;
+    inherits: true;
+}
+
+@property --draw-bottom {
+    syntax: '<number>';
+    initial-value: 0;
+    inherits: true;
+}
+
+@property --draw-left {
+    syntax: '<number>';
+    initial-value: 0;
+    inherits: true;
+}
+
+@property --fade-top {
+    syntax: '<number>';
+    initial-value: 1;
+    inherits: true;
+}
+
+@property --fade-right {
+    syntax: '<number>';
+    initial-value: 1;
+    inherits: true;
+}
+
+@property --fade-bottom {
+    syntax: '<number>';
+    initial-value: 1;
+    inherits: true;
+}
+
+@property --fade-left {
+    syntax: '<number>';
+    initial-value: 1;
+    inherits: true;
+}
+
 header {
     position: relative;
     display: grid;
@@ -146,8 +194,7 @@ header .brand-wordmark {
     pointer-events: none;
 }
 
-.ops-card:hover::after,
-.metric:hover::after {
+.ops-card:hover::after {
     animation: top-shimmer 4.4s linear infinite;
 }
 
@@ -160,6 +207,78 @@ header .brand-wordmark {
 
 .metric {
     padding-left: 18px;
+}
+
+.metric:hover .metric-orbit {
+    opacity: 1;
+    animation: metric-edge-trace 10s linear infinite;
+}
+
+.metric-orbit {
+    position: absolute;
+    z-index: 1;
+    inset: 0;
+    overflow: hidden;
+    border-radius: inherit;
+    box-shadow: 0 0 16px color-mix(in srgb, var(--metric-color, var(--teal)), transparent 78%);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .2s ease;
+}
+
+.metric-trace {
+    position: absolute;
+    display: block;
+    pointer-events: none;
+}
+
+.metric-trace-top {
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background: var(--metric-color, var(--teal));
+    opacity: var(--fade-top, 1);
+    transform: scaleX(var(--draw-top, 0));
+    transform-origin: left center;
+}
+
+.metric-trace-right {
+    top: 0;
+    right: 0;
+    width: 3px;
+    height: 100%;
+    background: var(--metric-color, var(--teal));
+    opacity: var(--fade-right, 1);
+    transform: scaleY(var(--draw-right, 0));
+    transform-origin: top center;
+}
+
+.metric-trace-bottom {
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    height: 3px;
+    background: var(--metric-color, var(--teal));
+    opacity: var(--fade-bottom, 1);
+    transform: scaleX(var(--draw-bottom, 0));
+    transform-origin: right center;
+}
+
+.metric-trace-left {
+    bottom: 0;
+    left: 0;
+    width: 3px;
+    height: 100%;
+    background: var(--metric-color, var(--teal));
+    opacity: var(--fade-left, 1);
+    transform: scaleY(var(--draw-left, 0));
+    transform-origin: bottom center;
+}
+
+.metric .label,
+.metric .value {
+    z-index: 3;
 }
 
 .metric .label {
@@ -203,6 +322,7 @@ header .brand-wordmark {
 
 .metric::before {
     position: absolute;
+    z-index: 2;
     top: 0;
     left: 0;
     bottom: 0;
@@ -222,6 +342,7 @@ header .brand-wordmark {
 
 .metric::after {
     position: absolute;
+    z-index: 2;
     top: 0;
     left: 0;
     width: 26%;
@@ -244,7 +365,116 @@ header .brand-wordmark {
 }
 
 @media (prefers-reduced-motion: reduce) {
+    .metric-orbit,
     .metric::after { animation: none; }
+}
+
+@keyframes metric-edge-trace {
+    0% {
+        --draw-top: 0;
+        --draw-right: 0;
+        --draw-bottom: 0;
+        --draw-left: 0;
+        --fade-top: 1;
+        --fade-right: 1;
+        --fade-bottom: 1;
+        --fade-left: 1;
+        opacity: 0;
+    }
+    4% {
+        --draw-top: 0;
+        --draw-right: 0;
+        --draw-bottom: 0;
+        --draw-left: 0;
+        --fade-top: 1;
+        --fade-right: 1;
+        --fade-bottom: 1;
+        --fade-left: 1;
+        opacity: 1;
+    }
+    24% {
+        --draw-top: 1;
+        --draw-right: 0;
+        --draw-bottom: 0;
+        --draw-left: 0;
+        --fade-top: 1;
+        --fade-right: 1;
+        --fade-bottom: 1;
+        --fade-left: 1;
+    }
+    44% {
+        --draw-top: 1;
+        --draw-right: 1;
+        --draw-bottom: 0;
+        --draw-left: 0;
+        --fade-top: 1;
+        --fade-right: 1;
+        --fade-bottom: 1;
+        --fade-left: 1;
+    }
+    54% {
+        --draw-top: 1;
+        --draw-right: 1;
+        --draw-bottom: .5;
+        --draw-left: 0;
+        --fade-top: .5;
+        --fade-right: 1;
+        --fade-bottom: 1;
+        --fade-left: 1;
+    }
+    64% {
+        --draw-top: 1;
+        --draw-right: 1;
+        --draw-bottom: 1;
+        --draw-left: 0;
+        --fade-top: 0;
+        --fade-right: 1;
+        --fade-bottom: 1;
+        --fade-left: 1;
+    }
+    74% {
+        --draw-top: 1;
+        --draw-right: 1;
+        --draw-bottom: 1;
+        --draw-left: .5;
+        --fade-top: 0;
+        --fade-right: .5;
+        --fade-bottom: .78;
+        --fade-left: 1;
+    }
+    84% {
+        --draw-top: 1;
+        --draw-right: 1;
+        --draw-bottom: 1;
+        --draw-left: 1;
+        --fade-top: 0;
+        --fade-right: 0;
+        --fade-bottom: .56;
+        --fade-left: .82;
+        opacity: .72;
+    }
+    92% {
+        --draw-top: 1;
+        --draw-right: 1;
+        --draw-bottom: 1;
+        --draw-left: 1;
+        --fade-top: 0;
+        --fade-right: 0;
+        --fade-bottom: .24;
+        --fade-left: .42;
+        opacity: .38;
+    }
+    100% {
+        --draw-top: 1;
+        --draw-right: 1;
+        --draw-bottom: 1;
+        --draw-left: 1;
+        --fade-top: 0;
+        --fade-right: 0;
+        --fade-bottom: 0;
+        --fade-left: 0;
+        opacity: 0;
+    }
 }
 
 .metric-value-refresh,
