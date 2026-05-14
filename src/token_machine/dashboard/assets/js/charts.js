@@ -82,6 +82,7 @@ export function renderModelDistribution(values) {
   });
 
   const leaderColor = modelColor(entries[0][0]);
+  const leaderCount = entries[0][1];
   donut.style.setProperty("--chart-color", leaderColor);
   donut.innerHTML = `
     <div class="donut-aura" aria-hidden="true"></div>
@@ -89,6 +90,51 @@ export function renderModelDistribution(values) {
     <div class="donut-total"><div><strong>${compactNumber(total)}</strong><span>calls</span><span class="donut-leader-tag"><span class="donut-leader-text">${escapeHtml(providerForModel(entries[0][0]))} lead</span></span></div></div>
   `;
   replayDonutAnimation(donut);
+
+  const segmentNodes = donut.querySelectorAll(".donut-segment");
+  legend.innerHTML = entries.map(([name, count], index) => {
+    const share = total ? (count / total) * 100 : 0;
+    const leader = index === 0 ? " dist-row-leader" : "";
+    const color = modelColor(name);
+    return `
+    <div class="dist-row${leader}" data-model="${escapeHtml(name)}" style="--row-color:${color}; --share:${share.toFixed(1)}%">
+      <span class="dist-rank">${String(index + 1).padStart(2, "0")}</span>
+      <span class="dist-name">${escapeHtml(name)}</span>
+      <span class="dist-value">${compactNumber(count)}<span class="dist-share">${share.toFixed(1)}%</span></span>
+      <span class="dist-track"><span class="dist-fill"></span></span>
+    </div>
+  `;
+  }).join("");
+  const rowNodes = legend.querySelectorAll(".dist-row");
+
+  const setActive = (name) => {
+    donut.classList.toggle("has-hover", Boolean(name));
+    segmentNodes.forEach((node) => {
+      node.classList.toggle("is-active", node.dataset.model === name);
+    });
+    rowNodes.forEach((node) => {
+      node.classList.toggle("is-active", node.dataset.model === name);
+    });
+  };
+
+  const tooltipFor = (segment, event) => {
+    const share = segment.count / total * 100;
+    const rank = segments.findIndex((item) => item.name === segment.name) + 1;
+    const vsLeader = segment.count === leaderCount
+      ? "leader"
+      : `${(((leaderCount - segment.count) / leaderCount) * 100).toFixed(0)}% below leader`;
+    const color = modelColor(segment.name);
+    showTooltip(event, `
+      <strong><span class="tooltip-swatch" style="background:${color}"></span>${escapeHtml(segment.name)}</strong>
+      <div class="tooltip-row"><span>provider</span><em>${escapeHtml(segment.provider)}</em></div>
+      <div class="tooltip-row"><span>rank</span><em>#${rank} of ${segments.length}</em></div>
+      <div class="tooltip-row"><span>calls</span><em>${fmt.format(segment.count)}</em></div>
+      <div class="tooltip-row"><span>share</span><em>${share.toFixed(1)}%</em></div>
+      <div class="tooltip-bar"><span style="width:${share.toFixed(1)}%; background:${color}"></span></div>
+      <div class="tooltip-foot">${escapeHtml(vsLeader)}</div>
+    `);
+  };
+
   donut.onmousemove = (event) => {
     const rect = donut.getBoundingClientRect();
     const x = event.clientX - rect.left - rect.width / 2;
@@ -97,24 +143,30 @@ export function renderModelDistribution(values) {
     if (degrees < 0) degrees += 360;
     const percent = degrees / 360 * 100;
     const segment = segments.find((item) => percent >= item.start && percent <= item.end) || segments[0];
-    const share = segment.count / total * 100;
-    showTooltip(event, `<strong>${escapeHtml(segment.name)}</strong>${escapeHtml(segment.provider)}<br>${fmt.format(segment.count)} calls<br>${share.toFixed(1)}% of model calls`);
+    setActive(segment.name);
+    tooltipFor(segment, event);
   };
-  donut.onmouseleave = hideTooltip;
-  legend.innerHTML = entries.map(([name, count], index) => {
-    const share = total ? (count / total) * 100 : 0;
-    const leader = index === 0 ? " dist-row-leader" : "";
-    const color = modelColor(name);
-    return `
-    <div class="dist-row${leader}" style="--row-color:${color}; --share:${share.toFixed(1)}%" title="${escapeHtml(name)}: ${fmt.format(count)} calls">
-      <span class="dist-rank">${String(index + 1).padStart(2, "0")}</span>
-      <span class="dist-name">${escapeHtml(name)}</span>
-      <span class="dist-value">${compactNumber(count)}<span class="dist-share">${share.toFixed(1)}%</span></span>
-      <span class="dist-track"><span class="dist-fill"></span></span>
-    </div>
-  `;
-  }).join("");
-  setInsight("models-insight", `${providerForModel(entries[0][0])} leads model usage with ${compactNumber(entries[0][1])} model calls.`);
+  donut.onmouseleave = () => {
+    setActive(null);
+    hideTooltip();
+  };
+
+  rowNodes.forEach((row) => {
+    row.addEventListener("mouseenter", (event) => {
+      const segment = segments.find((s) => s.name === row.dataset.model);
+      if (!segment) return;
+      setActive(segment.name);
+      tooltipFor(segment, event);
+    });
+    row.addEventListener("mousemove", (event) => {
+      const segment = segments.find((s) => s.name === row.dataset.model);
+      if (segment) tooltipFor(segment, event);
+    });
+    row.addEventListener("mouseleave", () => {
+      setActive(null);
+      hideTooltip();
+    });
+  });
 }
 
 function donutSvg(segments) {
@@ -126,6 +178,7 @@ function donutSvg(segments) {
       <path
         class="donut-segment${leader}"
         style="--seg-index:${index}"
+        data-model="${escapeHtml(segment.name)}"
         d="${donutSlicePath(segment.start, segment.end, outerRadius, innerRadius)}"
         fill="${modelColor(segment.name)}"
       ></path>
@@ -143,15 +196,8 @@ function donutSvg(segments) {
           <stop offset="92%" stop-color="rgba(255,255,255,0.22)"/>
           <stop offset="100%" stop-color="rgba(255,255,255,0)"/>
         </radialGradient>
-        <filter id="donut-glow" x="-20%" y="-20%" width="140%" height="140%">
-          <feGaussianBlur stdDeviation="2.4" result="blur"/>
-          <feMerge>
-            <feMergeNode in="blur"/>
-            <feMergeNode in="SourceGraphic"/>
-          </feMerge>
-        </filter>
       </defs>
-      <g class="donut-segments" filter="url(#donut-glow)">
+      <g class="donut-segments">
         ${slices}
       </g>
       ${overlay}
