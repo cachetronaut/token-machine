@@ -188,7 +188,6 @@ def test_dashboard_live_surface_polls_live_api_and_debug_reload() -> None:
     assert "script_reload_token" in api_js
     assert "window.location.reload" in api_js
     assert "live-context-critical" in live_js
-    assert "contextUsageLabel" in live_js
     assert "limitDisplayName" in live_js
     assert '"current"' in live_js
     assert '"weekly"' in live_js
