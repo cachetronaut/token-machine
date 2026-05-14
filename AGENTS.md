@@ -30,7 +30,7 @@
 - Use repository-relative paths in documentation (e.g., `reference/ARCHITECTURE.md`)
 
 ## Documentation, Memory & Planning
-- Always use front matter in reference documents so metadata is easy to load and search. Include at least `status`, `date` (modified/updated), `description`, and `keywords`
+- Always use front matter in reference documents so metadata is easy to load and search. Include at least `status`, `updated` (created/modified), `description`, and `keywords`
 - Put user-requested reference material in `reference/personal/`, creating a focused subdirectory when helpful
 - If asked to remember something, or if you discover a reusable nuance worth preserving, write it to `reference/lessons/` with a search-friendly filename.
 - When creating tasks or a plan, record it in `reference/plan/` as a failsafe for interrupted sessions

@@ -1,8 +1,8 @@
 ---
 status: active
-date: 2026-05-13
+date: 2026-05-14
 description: Public architecture for the Token Machine CLI-agent analytics package.
-keywords: token-machine, cli agents, analytics, architecture, ingestion, dashboard
+keywords: token-machine, cli agents, analytics, architecture, ingestion, dashboard, live usage, design
 ---
 
 # Architecture
@@ -83,13 +83,19 @@ FastAPI serves the dashboard through focused routes:
 
 - `/` returns Jinja-rendered HTML from `src/token_machine/dashboard/render.py`.
 - `/api/summary` returns serialized `DashboardData`.
-- `/assets/{kind}/{name}` returns packaged CSS, JavaScript, image, and SVG icon assets for `css`, `js`, `img`, and `icons`.
+- `/api/live` returns serialized live usage snapshots from the local live store.
+- `/api/debug/reload` returns the current script reload token over `GET` and refreshes live snapshots over `POST`.
+- `/assets/{kind}/{name}` returns packaged CSS, JavaScript, font, image, and SVG icon assets for `css`, `js`, `fonts`, `img`, and `icons`.
 
-Dashboard HTML lives in Jinja templates under `src/token_machine/dashboard/templates/`. CSS, browser-native JavaScript modules, images, and packaged icon fallbacks live under `src/token_machine/dashboard/assets/`. There is no frontend build system in v1.
+Dashboard HTML lives in Jinja templates under `src/token_machine/dashboard/templates/`. CSS, browser-native JavaScript modules, local fonts, images, and packaged icon fallbacks live under `src/token_machine/dashboard/assets/`. There is no frontend build system in v1.
 
 The dashboard API returns `DashboardData`, including aggregate summary data, daily and hourly series, model profiles, and recent session profiles. Metric and profile code returns dataclasses; JSON conversion happens at the route boundary.
 
 Tools are the broad action layer. Skills are represented as `skill_call` events only when a source exposes an explicit skill signal. Command execution is represented as a command-bearing action, and executable names are derived from command strings through shared parser helpers rather than from a fixed list.
+
+The live dashboard surface uses `LiveData` and `LiveUsageSnapshot` values from `src/token_machine/live/`. It summarizes active sessions, context windows, current tool/action activity, subagent counts, session limits, and compaction events without changing the aggregate `DashboardData` contract.
+
+The visual system is documented in `reference/DESIGN.md`. The current dashboard uses a dark local-operations theme, a blue-to-teal Token Machine wordmark, local Orbitron/Teko/Share Tech Mono fonts, compact telemetry cards, local app/model icons, and reduced-motion-aware animation for live state, charts, sections, recent sessions, and intro playback.
 
 Dashboard icons are served through the same local asset route. `serve` refreshes the store icon cache from `@lobehub/icons-static-svg` by default and falls back to cached or packaged icons when refresh is skipped or unavailable. Runtime dashboard rendering must not depend on CDN, npm, or Node tooling.
 
