@@ -407,7 +407,7 @@ def test_claude_statusline_snapshot_extracts_session_limits() -> None:
     assert snapshot.source == AgentSource.CLAUDE_CODE
     assert snapshot.session_id == "c1"
     assert snapshot.source_path == "/tmp/.claude/projects/project/c1.jsonl"
-    assert snapshot.model == "Claude Sonnet 4.6"
+    assert snapshot.model == "Sonnet 4.6"
     assert snapshot.project_path == "/work/project"
     assert snapshot.context.used_percent == 81
     assert snapshot.session_limits[0].name == "five_hour"

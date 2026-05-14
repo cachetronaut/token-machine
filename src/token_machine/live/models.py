@@ -6,6 +6,7 @@ from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import Mapping, cast
 
+from token_machine.live.model_names import canonical_model_name
 from token_machine.models import AgentSource, TokenUsage, safe_int
 from token_machine.sources.base import executable_from_command
 
@@ -121,7 +122,7 @@ def snapshot_from_mapping(data: Mapping[str, object]) -> LiveUsageSnapshot:
         source_path=str(data.get("source_path", "")),
         session_name=str(data.get("session_name", "")),
         project_path=str(data.get("project_path", "")),
-        model=str(data.get("model", "")),
+        model=canonical_model_name(str(data.get("model", ""))),
         updated_at=str(data.get("updated_at", "")),
         observed_at=str(data.get("observed_at", "")),
         status=_probe_status(str(data.get("status", LiveProbeStatus.MISSING.value))),

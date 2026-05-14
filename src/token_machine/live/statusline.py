@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Mapping, Sequence, cast
 
 from token_machine.config import DEFAULT_STORE
+from token_machine.live.model_names import canonical_model_name
 from token_machine.live.models import (
     LiveContextWindow,
     LiveProbeStatus,
@@ -531,8 +532,10 @@ def _statusline_model(payload: Mapping[str, object]) -> str:
     model = payload.get("model")
     if isinstance(model, Mapping):
         typed_model = cast(Mapping[str, object], model)
-        return _first_string(typed_model, "display_name", "displayName", "id", "name")
-    return str(model) if isinstance(model, str) else ""
+        raw = _first_string(typed_model, "display_name", "displayName", "id", "name")
+    else:
+        raw = str(model) if isinstance(model, str) else ""
+    return canonical_model_name(raw)
 
 
 def _statusline_workspace(payload: Mapping[str, object]) -> str:

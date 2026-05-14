@@ -7,6 +7,7 @@ from collections.abc import Sequence
 from pathlib import Path
 from typing import Mapping, cast
 
+from token_machine.live.model_names import canonical_model_name
 from token_machine.live.models import (
     LiveContextWindow,
     LiveCompaction,
@@ -137,7 +138,7 @@ def codex_snapshot(
         source_path=str(path),
         session_name=_session_name(path, objects),
         project_path=project_path,
-        model=model,
+        model=canonical_model_name(model),
         updated_at=updated_at,
         observed_at=utc_now(),
         status=LiveProbeStatus.ACTIVE,
@@ -222,7 +223,7 @@ def claude_snapshot(
         source_path=str(path),
         session_name=_session_name(path, objects),
         project_path=project_path,
-        model=model,
+        model=canonical_model_name(model),
         updated_at=updated_at,
         observed_at=utc_now(),
         status=LiveProbeStatus.ACTIVE,
@@ -301,7 +302,7 @@ def gemini_snapshot(
         source_path=str(path),
         session_name=_session_name(path, records),
         project_path=project_path,
-        model=model,
+        model=canonical_model_name(model),
         updated_at=updated_at,
         observed_at=utc_now(),
         status=LiveProbeStatus.ACTIVE,
