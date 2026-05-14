@@ -19,7 +19,7 @@ DASHBOARD_VIEW_MODEL = DashboardViewModel(
         "/assets/css/intro.css",
     ),
     js_entrypoint="/assets/js/dashboard.js",
-    logo_path="/assets/img/logo.png",
+    logo_path="/assets/icons/logo-tm.svg",
 )
 
 _ENVIRONMENT = Environment(

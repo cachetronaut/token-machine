@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 60" role="img" aria-label="Token Machine">
+  <defs>
+    <linearGradient id="tm-stroke" x1="0" y1="0" x2="96" y2="60" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#6BA6FF"/>
+      <stop offset="100%" stop-color="#43C7B7"/>
+    </linearGradient>
+    <linearGradient id="tm-letters" x1="0" y1="0" x2="96" y2="60" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#9BC2FF"/>
+      <stop offset="40%" stop-color="#6BA6FF"/>
+      <stop offset="100%" stop-color="#43C7B7"/>
+    </linearGradient>
+    <linearGradient id="tm-bg" x1="0" y1="0" x2="0" y2="60" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#171B22"/>
+      <stop offset="100%" stop-color="#0D1015"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Frame -->
+  <rect x="3" y="3" width="90" height="54" rx="14" ry="14"
+        fill="url(#tm-bg)" stroke="url(#tm-stroke)" stroke-width="2.5"/>
+
+  <!-- Top edge accent -->
+  <rect x="20" y="3" width="56" height="1" fill="url(#tm-stroke)" opacity="0.55"/>
+
+  <g fill="url(#tm-letters)">
+    <!-- T -->
+    <rect x="18" y="16" width="26" height="6" rx="0.8"/>
+    <rect x="28" y="16" width="6" height="28" rx="0.8"/>
+
+    <!-- M (Orbitron-style V-notch) -->
+    <path d="
+      M 50 44
+      L 50 16
+      L 55 16
+      L 64 28
+      L 73 16
+      L 78 16
+      L 78 44
+      L 72.5 44
+      L 72.5 25
+      L 64 34
+      L 55.5 25
+      L 55.5 44
+      Z
+    "/>
+  </g>
+</svg>

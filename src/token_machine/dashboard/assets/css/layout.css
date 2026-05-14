@@ -1,35 +1,82 @@
+@property --header-edge-angle {
+    syntax: '<angle>';
+    initial-value: 0deg;
+    inherits: false;
+}
+
 header {
-    display: flex;
+    position: relative;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
     align-items: center;
-    justify-content: space-between;
     gap: 16px;
     margin-bottom: 22px;
-    padding: 16px 18px;
+    padding: 8px 18px;
     overflow: hidden;
-    border-bottom: 1px solid rgba(255, 255, 255, .07);
-    border-radius: 8px;
+    border: 1.5px solid transparent;
+    border-radius: 12px;
     background:
-        linear-gradient(135deg, rgba(107, 166, 255, .1), transparent 32%),
-        linear-gradient(180deg, rgba(23, 27, 34, .88), rgba(13, 16, 21, .68));
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .05);
+        linear-gradient(90deg, rgba(67, 199, 183, .055), transparent 24%) padding-box,
+        linear-gradient(180deg, var(--surface-top), var(--surface-bottom)) padding-box,
+        conic-gradient(
+            from var(--header-edge-angle),
+            rgba(107, 166, 255, .22) 0deg,
+            rgba(155, 194, 255, .55) 60deg,
+            rgba(67, 199, 183, .55) 100deg,
+            rgba(107, 166, 255, .22) 160deg,
+            rgba(107, 166, 255, .22) 360deg
+        ) border-box;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, .04),
+        0 0 24px rgba(67, 199, 183, .06);
+    animation: header-orbit 18s linear infinite;
+}
+
+@keyframes header-orbit {
+    to { --header-edge-angle: 360deg; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    header {
+        animation: none;
+    }
+}
+
+header .header-side {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+}
+
+header .header-side-left {
+    justify-content: flex-start;
+}
+
+header .header-side-right {
+    justify-content: flex-end;
 }
 
 header .brand {
     display: flex;
-    align-items: center;
     min-width: 0;
-    gap: 1rem;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    text-align: center;
 }
 
-header .logo {
-    width: 68px;
-    height: 68px;
-    padding: 7px;
-    border: 1px solid rgba(255, 255, 255, .08);
-    border-radius: 8px;
-    background: rgba(8, 11, 15, .46);
-    object-fit: contain;
-    filter: drop-shadow(0 8px 22px rgba(0, 0, 0, .32));
+header .brand-text {
+    min-width: 0;
+}
+
+header .brand-wordmark {
+    background: linear-gradient(135deg, #9BC2FF 0%, #6BA6FF 40%, #43C7B7 100%);
+    -webkit-background-clip: text;
+            background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+    letter-spacing: 0.06em;
+    text-shadow: 0 0 22px rgba(107, 166, 255, .18);
 }
 
 .status {
@@ -792,8 +839,15 @@ header .logo {
 
 @media (max-width: 920px) {
     header {
-        align-items: start;
-        flex-direction: column;
+        grid-template-columns: 1fr;
+        justify-items: center;
+        align-items: center;
+        text-align: center;
+    }
+
+    header .header-side-left,
+    header .header-side-right {
+        justify-content: center;
     }
 
     .charts,
