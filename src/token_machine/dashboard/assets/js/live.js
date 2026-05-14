@@ -315,6 +315,8 @@ function compactionTitle(compaction) {
     return parts.filter(Boolean).join(" · ");
 }
 function updateLanes(root, html, signature) {
+    if (!root)
+        return;
     if (root.dataset.liveSignature === signature)
         return;
     root.dataset.liveSignature = signature;
@@ -433,5 +435,5 @@ function timestamp(snapshot) {
 function setText(id, value) {
     const element = document.getElementById(id);
     if (element)
-        element.textContent = value;
+        element.textContent = String(value);
 }

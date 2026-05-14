@@ -31,6 +31,7 @@ export interface DashboardSummary {
 
 export interface DailySummary {
   day: string;
+  hour?: string;
   summary: DashboardSummary;
 }
 

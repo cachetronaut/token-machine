@@ -6,7 +6,7 @@
     "rootDir": "src/token_machine/dashboard/assets/ts",
     "outDir": "src/token_machine/dashboard/assets/js",
     "strict": true,
-    "noImplicitAny": false,
+    "noImplicitAny": true,
     "noUncheckedIndexedAccess": false,
     "exactOptionalPropertyTypes": false,
     "moduleDetection": "force",

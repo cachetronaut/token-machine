@@ -7,13 +7,13 @@ export function initSectionToggles() {
     const section = document.getElementById(sectionId);
     if (!section) return;
 
-    const applyState = (open, replay = false) => {
+    const applyState = (open: boolean, replay = false) => {
       const wasOpen = section.classList.contains("section-open");
       section.classList.toggle("section-open", open);
       section.classList.toggle("section-collapsed", !open);
       toggle.setAttribute("aria-expanded", String(open));
       if (open && (replay || !wasOpen)) {
-        const donut = section.querySelector("#models-donut");
+        const donut = section.querySelector<HTMLElement>("#models-donut");
         if (donut) replayDonutAnimation(donut);
       }
     };

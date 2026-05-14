@@ -1,12 +1,36 @@
 import { appColor } from "./charts.js";
 import { compactNumber, escapeHtml, fmt, projectName } from "./format.js";
 import { appDisplayName, renderAppIcon } from "./icons.js";
+import type {
+  LiveCompaction,
+  LiveContextWindow,
+  LiveData,
+  LiveRateLimit,
+  LiveToolCall,
+  LiveUsageSnapshot,
+} from "./types.js";
 
 let liveDisclosureReady = false;
 let liveToolsPrimed = false;
-const knownLiveTools = new Set();
+const knownLiveTools = new Set<string>();
 
-export function renderLive(data) {
+interface LiveTotals {
+  queries: number;
+  tools: number;
+  subagents: number;
+  tokens: number;
+}
+
+interface LiveActionCounts {
+  tools: number;
+  skills: number;
+  commands: number;
+}
+
+type LiveStatus = "active" | "stale" | "error" | "missing";
+type LiveActionKind = "tool" | "skill" | "command";
+
+export function renderLive(data: LiveData) {
   ensureLiveDisclosure();
   const lanesRoot = document.getElementById("live-lanes");
   const snapshots = (data.snapshots || []).slice().sort(compareSnapshots);
@@ -46,9 +70,9 @@ export function renderLiveError() {
   lanesRoot.innerHTML = '<div class="live-empty">Live endpoint unavailable</div>';
 }
 
-function summarize(snapshots) {
+function summarize(snapshots: LiveUsageSnapshot[]): LiveTotals {
   return snapshots.reduce(
-    (total, snapshot) => ({
+    (total: LiveTotals, snapshot: LiveUsageSnapshot) => ({
       queries: total.queries + Number(snapshot.user_queries?.count || 0),
       tools: total.tools + liveActions(snapshot).length,
       subagents: total.subagents + snapshotSubagentCount(snapshot),
@@ -58,7 +82,11 @@ function summarize(snapshots) {
   );
 }
 
-function setStatusLine(data, activeSnapshots, snapshots) {
+function setStatusLine(
+  data: LiveData,
+  activeSnapshots: LiveUsageSnapshot[],
+  snapshots: LiveUsageSnapshot[],
+) {
   const led = document.getElementById("live-led");
   if (led) {
     led.className = `live-led ${activeSnapshots.length ? "" : "live-led-idle"}`.trim();
@@ -84,7 +112,7 @@ function setStatusLine(data, activeSnapshots, snapshots) {
   setText("live-subline", parts.join(" · "));
 }
 
-function renderLane(snapshot) {
+function renderLane(snapshot: LiveUsageSnapshot) {
   const color = appColor(snapshot.source);
   const context = snapshot.context || {};
   const contextPercent = Number(context.used_percent || 0);
@@ -151,7 +179,7 @@ function renderLane(snapshot) {
   `;
 }
 
-function renderSessionLimits(sessionLimits) {
+function renderSessionLimits(sessionLimits: LiveRateLimit[]) {
   if (!sessionLimits.length) return "";
   return `
     <div class="live-rate-row">
@@ -174,7 +202,7 @@ function renderSessionLimits(sessionLimits) {
   `;
 }
 
-function renderTools(tools, snapshot) {
+function renderTools(tools: LiveToolCall[], snapshot: LiveUsageSnapshot) {
   if (!tools.length) {
     return '<div class="live-tools-empty">No live tools</div>';
   }
@@ -210,7 +238,7 @@ function renderTools(tools, snapshot) {
   `;
 }
 
-function commitRenderedToolKeys(snapshots) {
+function commitRenderedToolKeys(snapshots: LiveUsageSnapshot[]) {
   for (const snapshot of snapshots) {
     for (const tool of snapshot.live_tool_calls || []) {
       knownLiveTools.add(liveToolKey(snapshot, tool));
@@ -219,7 +247,7 @@ function commitRenderedToolKeys(snapshots) {
   liveToolsPrimed = true;
 }
 
-function liveToolKey(snapshot, tool) {
+function liveToolKey(snapshot: LiveUsageSnapshot, tool: LiveToolCall) {
   return [
     snapshot.session_id,
     snapshot.source,
@@ -230,20 +258,20 @@ function liveToolKey(snapshot, tool) {
   ].join("::");
 }
 
-function compareTools(a, b) {
+function compareTools(a: LiveToolCall, b: LiveToolCall) {
   const delta = Date.parse(b.updated_at || "") - Date.parse(a.updated_at || "");
   if (!Number.isNaN(delta) && delta) return delta;
   return String(b.command || b.name || "").localeCompare(String(a.command || a.name || ""));
 }
 
-function commandLabel(command) {
+function commandLabel(command: string) {
   const value = String(command || "")
     .replace(/\s+/g, " ")
     .trim();
   return value.length > 72 ? `${value.slice(0, 69)}...` : value;
 }
 
-function contextTitle(context) {
+function contextTitle(context: Partial<LiveContextWindow>) {
   const used = Number(context.used_tokens || 0);
   const windowTokens = Number(context.window_tokens || 0);
   const origin = context.origin || "missing";
@@ -251,7 +279,7 @@ function contextTitle(context) {
   return `${fmt.format(used)} used / ${fmt.format(windowTokens)} window · origin: ${origin}`;
 }
 
-function limitTitle(limit) {
+function limitTitle(limit: LiveRateLimit) {
   const parts = [
     limit.origin,
     limit.resets_at ? `resets ${resetLabel(limit.resets_at)}` : "",
@@ -259,26 +287,26 @@ function limitTitle(limit) {
   return parts.join(" · ") || limit.name || "rate limit";
 }
 
-function toolTitle(tool) {
+function toolTitle(tool: LiveToolCall) {
   return [liveActionKind(tool), tool.status, tool.executable, tool.command, tool.updated_at]
     .filter(Boolean)
     .join(" · ");
 }
 
-function kindLabel(kind, name) {
+function kindLabel(kind: LiveActionKind, name: string) {
   if (kind === "skill") return `skill ${name}`;
   if (kind === "command") return `exec ${name}`;
   return name;
 }
 
-function contextLevel(percent, hasWindow) {
+function contextLevel(percent: number, hasWindow: boolean) {
   if (!hasWindow) return "live-context-missing";
   if (percent >= 95) return "live-context-critical";
   if (percent >= 75) return "live-context-warn";
   return "live-context-ok";
 }
 
-function sessionUsageLimits(snapshot) {
+function sessionUsageLimits(snapshot: LiveUsageSnapshot): LiveRateLimit[] {
   if (Array.isArray(snapshot.session_limits) && snapshot.session_limits.length) {
     return snapshot.session_limits;
   }
@@ -288,7 +316,7 @@ function sessionUsageLimits(snapshot) {
   }));
 }
 
-function limitDisplayName(name) {
+function limitDisplayName(name: string) {
   const key = String(name || "")
     .toLowerCase()
     .replace(/[\s-]+/g, "_");
@@ -297,7 +325,7 @@ function limitDisplayName(name) {
   return name || "limit";
 }
 
-function resetLabel(value) {
+function resetLabel(value: string | number) {
   const raw = Number(value);
   const resetMs = raw > 10_000_000_000 ? raw : raw * 1000;
   if (!raw || Number.isNaN(resetMs)) return String(value);
@@ -314,7 +342,7 @@ function resetLabel(value) {
   return hours ? `${days}d ${hours}h` : `${days}d`;
 }
 
-function compactionTitle(compaction) {
+function compactionTitle(compaction: Partial<LiveCompaction>) {
   const parts = [
     compaction.trigger || "compacted",
     compaction.last_at || "",
@@ -324,7 +352,8 @@ function compactionTitle(compaction) {
   return parts.filter(Boolean).join(" · ");
 }
 
-function updateLanes(root, html, signature) {
+function updateLanes(root: HTMLElement | null, html: string, signature: string) {
+  if (!root) return;
   if (root.dataset.liveSignature === signature) return;
   root.dataset.liveSignature = signature;
   root.innerHTML = html;
@@ -347,7 +376,7 @@ function ensureLiveDisclosure() {
   });
 }
 
-function liveSignature(snapshots) {
+function liveSignature(snapshots: LiveUsageSnapshot[]) {
   return snapshots
     .slice(0, 8)
     .map((snapshot) =>
@@ -383,13 +412,13 @@ function liveSignature(snapshots) {
     .join("||");
 }
 
-function subagentCount(tools) {
+function subagentCount(tools: LiveToolCall[]) {
   return tools.filter(isSubagentTool).length;
 }
 
-function liveActionCounts(tools) {
+function liveActionCounts(tools: LiveToolCall[]): LiveActionCounts {
   return tools.reduce(
-    (counts, tool) => {
+    (counts: LiveActionCounts, tool: LiveToolCall) => {
       const kind = liveActionKind(tool);
       if (kind === "skill") counts.skills += 1;
       else if (kind === "command") counts.commands += 1;
@@ -400,7 +429,7 @@ function liveActionCounts(tools) {
   );
 }
 
-function liveActionKind(tool) {
+function liveActionKind(tool: LiveToolCall): LiveActionKind {
   const kind = String(tool.kind || "tool").toLowerCase();
   if (kind === "skill" || kind === "command") return kind;
   if (tool.command) return "command";
@@ -409,14 +438,14 @@ function liveActionKind(tool) {
   return "tool";
 }
 
-function snapshotSubagentCount(snapshot) {
+function snapshotSubagentCount(snapshot: LiveUsageSnapshot) {
   return Math.max(
     subagentCount(liveActions(snapshot)),
     Number(snapshot.current_metrics?.subagent_sessions || 0),
   );
 }
 
-function isSubagentTool(tool) {
+function isSubagentTool(tool: LiveToolCall) {
   const name = String(tool.name || "").toLowerCase();
   return [
     "spawn_agent",
@@ -428,11 +457,11 @@ function isSubagentTool(tool) {
   ].includes(name);
 }
 
-function liveActions(snapshot) {
+function liveActions(snapshot: LiveUsageSnapshot): LiveToolCall[] {
   return snapshot.live_actions || snapshot.live_tool_calls || [];
 }
 
-function sessionTokens(snapshot) {
+function sessionTokens(snapshot: LiveUsageSnapshot) {
   return Number(
     snapshot.current_metrics?.session_total_tokens ||
       snapshot.token_usage?.total_tokens ||
@@ -441,20 +470,21 @@ function sessionTokens(snapshot) {
   );
 }
 
-function compareSnapshots(a, b) {
-  const statusRank = { active: 0, stale: 1, error: 2, missing: 3 };
-  const statusDelta = (statusRank[a.status] ?? 4) - (statusRank[b.status] ?? 4);
+function compareSnapshots(a: LiveUsageSnapshot, b: LiveUsageSnapshot) {
+  const statusRank: Record<LiveStatus, number> = { active: 0, stale: 1, error: 2, missing: 3 };
+  const statusDelta =
+    (statusRank[a.status as LiveStatus] ?? 4) - (statusRank[b.status as LiveStatus] ?? 4);
   if (statusDelta) return statusDelta;
   return timestamp(b) - timestamp(a);
 }
 
-function timestamp(snapshot) {
+function timestamp(snapshot: LiveUsageSnapshot) {
   const raw = snapshot.updated_at || snapshot.observed_at || "";
   const value = Date.parse(raw);
   return Number.isNaN(value) ? 0 : value;
 }
 
-function setText(id, value) {
+function setText(id: string, value: string | number) {
   const element = document.getElementById(id);
-  if (element) element.textContent = value;
+  if (element) element.textContent = String(value);
 }

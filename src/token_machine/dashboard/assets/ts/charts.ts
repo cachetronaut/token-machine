@@ -29,11 +29,11 @@ const chartMotionFrames = new WeakMap<Element, number>();
 let chartMotionBatchStart = 0;
 let chartMotionBatchExpires = 0;
 
-export function appColor(source) {
+export function appColor(source: string | null | undefined) {
   return appColors[String(source || "").toLowerCase()] || appColors.unknown;
 }
 
-export function modelColor(model) {
+export function modelColor(model: string | null | undefined) {
   const key = String(model || "").toLowerCase();
   if (modelColors[key]) return modelColors[key];
   if (key.includes("claude")) return appColors.claudecode;
@@ -44,7 +44,7 @@ export function modelColor(model) {
   return "#43c7b7";
 }
 
-export function showTooltip(event, html) {
+export function showTooltip(event: MouseEvent, html: string) {
   const tooltip = document.getElementById("tooltip");
   if (!tooltip) return;
   tooltip.innerHTML = html;
@@ -124,7 +124,7 @@ export function renderModelDistribution(values: CountMap) {
     .join("");
   const rowNodes = legend.querySelectorAll<HTMLElement>(".dist-row");
 
-  const setActive = (name) => {
+  const setActive = (name: string | null) => {
     donut.classList.toggle("has-hover", Boolean(name));
     segmentNodes.forEach((node) => {
       node.classList.toggle("is-active", node.dataset.model === name);
@@ -134,7 +134,7 @@ export function renderModelDistribution(values: CountMap) {
     });
   };
 
-  const tooltipFor = (segment, event) => {
+  const tooltipFor = (segment: DonutSegment, event: MouseEvent) => {
     const share = (segment.count / total) * 100;
     const rank = segments.findIndex((item) => item.name === segment.name) + 1;
     const vsLeader =
@@ -229,7 +229,7 @@ function donutSvg(segments: DonutSegment[]) {
   `;
 }
 
-export function replayDonutAnimation(root) {
+export function replayDonutAnimation(root?: HTMLElement | null) {
   const donut = root || document.getElementById("models-donut");
   if (!donut) return;
   donut.classList.remove("donut-animate-in");
@@ -237,7 +237,7 @@ export function replayDonutAnimation(root) {
   donut.classList.add("donut-animate-in");
 }
 
-export function vizEmpty(label) {
+export function vizEmpty(label: string) {
   return `<div class="viz-empty"><span>${escapeHtml(label)}</span></div>`;
 }
 
@@ -268,7 +268,12 @@ function chartSkeletonSvg(width = 760, height = 260) {
   `;
 }
 
-function donutSlicePath(startPercent, endPercent, outerRadius, innerRadius) {
+function donutSlicePath(
+  startPercent: number,
+  endPercent: number,
+  outerRadius: number,
+  innerRadius: number,
+) {
   const startAngle = (startPercent / 100) * 360 - 90;
   const endAngle = (endPercent / 100) * 360 - 90;
   const largeArc = endAngle - startAngle > 180 ? 1 : 0;
@@ -285,7 +290,7 @@ function donutSlicePath(startPercent, endPercent, outerRadius, innerRadius) {
   ].join(" ");
 }
 
-function polarPoint(cx, cy, radius, angle) {
+function polarPoint(cx: number, cy: number, radius: number, angle: number) {
   const radians = (angle * Math.PI) / 180;
   return {
     x: (cx + radius * Math.cos(radians)).toFixed(3),
@@ -310,7 +315,7 @@ export function renderChart(
   getValue: ChartValueGetter,
   lineColor: string,
   fillColor: string,
-  labelKey: string,
+  labelKey: "day" | "hour",
   options: ChartOptions = {},
 ) {
   const root = document.getElementById(id) as ChartElement | null;
@@ -355,7 +360,7 @@ function chartSvg(
   getValue: ChartValueGetter,
   lineColor: string,
   _fillColor: string,
-  labelKey: string,
+  labelKey: "day" | "hour",
   options: ChartOptions,
   meta: ChartMeta,
 ) {
@@ -515,7 +520,7 @@ function animateSignalChart(root: ChartElement) {
   const startTime = nextChartMotionStart();
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-  const update = (progress) => {
+  const update = (progress: number) => {
     const point = pointAtProgress(points, progress);
     const firstX = points[0].x;
     const lastX = points[points.length - 1].x;
@@ -556,7 +561,7 @@ function animateSignalChart(root: ChartElement) {
   }
 
   update(0);
-  const tick = (now) => {
+  const tick = (now: number) => {
     const elapsed = Math.max(0, now - startTime);
     const progress = Math.min(1, elapsed / duration);
     update(progress);
@@ -579,7 +584,12 @@ function nextChartMotionStart() {
   return chartMotionBatchStart;
 }
 
-function parsePolylinePoints(points) {
+interface ChartPoint {
+  x: number;
+  y: number;
+}
+
+function parsePolylinePoints(points: string): ChartPoint[] {
   return points
     .trim()
     .split(/\s+/)
@@ -591,7 +601,7 @@ function parsePolylinePoints(points) {
     .filter((point) => Number.isFinite(point.x) && Number.isFinite(point.y));
 }
 
-function pointAtProgress(points, progress) {
+function pointAtProgress(points: ChartPoint[], progress: number): ChartPoint {
   if (points.length === 1) return points[0];
   const firstX = points[0].x;
   const lastX = points[points.length - 1].x;
@@ -608,7 +618,7 @@ function pointAtProgress(points, progress) {
   };
 }
 
-function cssTimeToMs(value, fallback) {
+function cssTimeToMs(value: string, fallback: number) {
   const match = String(value || "")
     .trim()
     .match(/^([\d.]+)(ms|s)$/);
@@ -618,7 +628,7 @@ function cssTimeToMs(value, fallback) {
   return match[2] === "s" ? amount * 1000 : amount;
 }
 
-function formatTickLabel(label) {
+function formatTickLabel(label: string) {
   const text = String(label || "");
   const dateMatch = text.match(/^(\d{4})-(\d{2})-(\d{2})/);
   if (dateMatch) return `${dateMatch[2]}/${dateMatch[3]}`;
@@ -632,7 +642,7 @@ function showChartTooltip(
   id: string,
   row: DailySummary,
   getValue: ChartValueGetter,
-  labelKey: string,
+  labelKey: "day" | "hour",
   options: ChartOptions = {},
 ) {
   const value = getValue(row);
@@ -652,17 +662,18 @@ function chartInsight(points: DailySummary[], getValue: ChartValueGetter, option
   const total = entries.reduce((sum, item) => sum + item.value, 0);
   if (!total) return options.emptyInsight || "No local agent activity in this window.";
   const peak = entries.reduce((best, item) => (item.value > best.value ? item : best), entries[0]);
-  const label = peak.point?.[options.labelKey || "day"] || "window";
+  const labelKey = options.labelKey === "hour" ? "hour" : "day";
+  const label = peak.point?.[labelKey] || "window";
   const unit = options.unit || "events";
   return `${options.subject || "Local agents"} peaked at ${compactNumber(peak.value)} ${unit} on ${escapeHtml(label)}.`;
 }
 
-function setInsight(id, text) {
+function setInsight(id: string, text: string) {
   const element = document.getElementById(id);
   if (element) element.textContent = text;
 }
 
-function providerForModel(model) {
+function providerForModel(model: string) {
   const key = String(model || "").toLowerCase();
   if (key.includes("claude")) return "Claude";
   if (key.includes("gemini")) return "Gemini";

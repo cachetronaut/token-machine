@@ -587,7 +587,8 @@ function chartInsight(points, getValue, options) {
     if (!total)
         return options.emptyInsight || "No local agent activity in this window.";
     const peak = entries.reduce((best, item) => (item.value > best.value ? item : best), entries[0]);
-    const label = peak.point?.[options.labelKey || "day"] || "window";
+    const labelKey = options.labelKey === "hour" ? "hour" : "day";
+    const label = peak.point?.[labelKey] || "window";
     const unit = options.unit || "events";
     return `${options.subject || "Local agents"} peaked at ${compactNumber(peak.value)} ${unit} on ${escapeHtml(label)}.`;
 }

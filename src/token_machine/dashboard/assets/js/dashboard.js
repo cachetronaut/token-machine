@@ -114,6 +114,8 @@ async function refresh(signal) {
 function renderMetricChart(id, points, labelKey, insightId) {
     const mode = chartModes[id];
     const config = chartMetricConfig[id][mode];
+    if (!config)
+        return;
     renderChart(id, points, config.value, config.color, config.color, labelKey, {
         insightId,
         labelKey,
@@ -164,7 +166,10 @@ document.querySelectorAll("[data-chart-mode]").forEach((button) => {
             return;
         if (chartModes[chartId] === button.dataset.chartValue)
             return;
-        chartModes[chartId] = button.dataset.chartValue || chartModes[chartId];
+        const nextMode = button.dataset.chartValue;
+        if (!nextMode || !chartMetricConfig[chartId][nextMode])
+            return;
+        chartModes[chartId] = nextMode;
         const chart = document.getElementById(chartId);
         chart?.classList.add("chart-tab-switch");
         const card = chart?.closest(".ops-card");

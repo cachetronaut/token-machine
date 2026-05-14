@@ -26,6 +26,8 @@ function seedWarp(warp) {
     warp.appendChild(frag);
 }
 function typeOn(el, text, perChar, startDelay, timers) {
+    if (!el)
+        return;
     timers.push(setTimeout(() => {
         el.textContent = "";
         for (let k = 0; k < text.length; k++) {
@@ -36,6 +38,8 @@ function typeOn(el, text, perChar, startDelay, timers) {
     }, startDelay));
 }
 function backspaceThenType(el, fromText, toText, timers, startDelay) {
+    if (!el)
+        return;
     timers.push(setTimeout(() => {
         for (let k = 0; k < fromText.length; k++) {
             timers.push(setTimeout(() => {

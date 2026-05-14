@@ -1,6 +1,6 @@
 const SESSION_KEY = "tm-intro-played";
 
-function seedWarp(warp) {
+function seedWarp(warp: Element | null) {
   if (!warp) return;
   const COUNT = 90;
   const TOTAL_WINDOW = 1700;
@@ -26,7 +26,14 @@ function seedWarp(warp) {
   warp.appendChild(frag);
 }
 
-function typeOn(el, text, perChar, startDelay, timers) {
+function typeOn(
+  el: Element | null,
+  text: string,
+  perChar: number,
+  startDelay: number,
+  timers: number[],
+) {
+  if (!el) return;
   timers.push(
     setTimeout(() => {
       el.textContent = "";
@@ -41,7 +48,14 @@ function typeOn(el, text, perChar, startDelay, timers) {
   );
 }
 
-function backspaceThenType(el, fromText, toText, timers, startDelay) {
+function backspaceThenType(
+  el: Element | null,
+  fromText: string,
+  toText: string,
+  timers: number[],
+  startDelay: number,
+) {
+  if (!el) return;
   timers.push(
     setTimeout(() => {
       for (let k = 0; k < fromText.length; k++) {
@@ -57,7 +71,7 @@ function backspaceThenType(el, fromText, toText, timers, startDelay) {
   );
 }
 
-export function playIntro({ force = false } = {}) {
+export function playIntro({ force = false }: { force?: boolean } = {}) {
   if (!force && sessionStorage.getItem(SESSION_KEY) === "1") {
     document.documentElement.classList.remove("intro-pending");
     return;

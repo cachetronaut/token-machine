@@ -203,7 +203,7 @@ function renderRankMedallions(row: ModelProfile, limit = 3) {
 }
 
 function categoryCode(category: string) {
-  const codes = {
+  const codes: Record<string, string> = {
     tools: "TL",
     commands: "CM",
     skills: "SK",

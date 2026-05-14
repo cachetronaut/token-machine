@@ -16,8 +16,15 @@ import { renderSessions } from "./sessions.js";
 import type { DailySummary, DashboardData } from "./types.js";
 
 type ChartId = "daily-chart" | "hourly-chart";
+type ChartMode = "tokens" | "skills" | "commands" | "events" | "tools";
+type ChartMetricConfig = {
+  value: (row: DailySummary) => number;
+  color: string;
+  unit: string;
+  subject: string;
+};
 
-const chartModes: Record<ChartId, string> = {
+const chartModes: Record<ChartId, ChartMode> = {
   "daily-chart": "tokens",
   "hourly-chart": "events",
 };
@@ -28,7 +35,7 @@ function isAbortError(error: unknown): boolean {
   return error instanceof DOMException && error.name === "AbortError";
 }
 
-const chartMetricConfig = {
+const chartMetricConfig: Record<ChartId, Partial<Record<ChartMode, ChartMetricConfig>>> = {
   "daily-chart": {
     tokens: {
       value: (row) => row.summary?.tokens?.total_tokens || 0,
@@ -71,7 +78,7 @@ const chartMetricConfig = {
   },
 };
 
-function setStatusState(state) {
+function setStatusState(state: "connecting" | "live" | "disconnected") {
   const status = document.querySelector(".status");
   if (!status) return;
   status.classList.remove("status-connecting", "status-live", "status-disconnected");
@@ -128,11 +135,12 @@ async function refresh(signal?: AbortSignal) {
 function renderMetricChart(
   id: ChartId,
   points: DailySummary[],
-  labelKey: string,
+  labelKey: "day" | "hour",
   insightId: string,
 ) {
   const mode = chartModes[id];
   const config = chartMetricConfig[id][mode];
+  if (!config) return;
   renderChart(id, points, config.value, config.color, config.color, labelKey, {
     insightId,
     labelKey,
@@ -185,7 +193,9 @@ document.querySelectorAll<HTMLElement>("[data-chart-mode]").forEach((button) => 
     const chartId = button.dataset.chartMode;
     if (chartId !== "daily-chart" && chartId !== "hourly-chart") return;
     if (chartModes[chartId] === button.dataset.chartValue) return;
-    chartModes[chartId] = button.dataset.chartValue || chartModes[chartId];
+    const nextMode = button.dataset.chartValue as ChartMode | undefined;
+    if (!nextMode || !chartMetricConfig[chartId][nextMode]) return;
+    chartModes[chartId] = nextMode;
     const chart = document.getElementById(chartId);
     chart?.classList.add("chart-tab-switch");
     const card = chart?.closest(".ops-card");

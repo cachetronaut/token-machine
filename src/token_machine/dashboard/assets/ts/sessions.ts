@@ -9,11 +9,12 @@ import {
   topEntries,
 } from "./format.js";
 import { appDisplayName, renderAppIcon } from "./icons.js";
+import type { SessionProfile } from "./types.js";
 
 let sessionsPrimed = false;
-const knownSessions = new Set();
+const knownSessions = new Set<string>();
 
-export function renderSessions(sessions) {
+export function renderSessions(sessions: SessionProfile[]) {
   text("session-count", `${sessions.length} shown`);
   const root = document.getElementById("recent-sessions");
   if (!root) return;
@@ -81,7 +82,7 @@ export function renderSessions(sessions) {
   });
 }
 
-function stableSessionKey(session) {
+function stableSessionKey(session: SessionProfile) {
   const rollup = session.rollup || {};
   return [
     rollup.source || "",
@@ -95,7 +96,7 @@ function stableSessionKey(session) {
   ].join("|");
 }
 
-function commitSessionKeys(sessions) {
+function commitSessionKeys(sessions: SessionProfile[]) {
   knownSessions.clear();
   sessions.forEach((session) => {
     knownSessions.add(stableSessionKey(session));

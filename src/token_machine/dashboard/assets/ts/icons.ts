@@ -1,6 +1,7 @@
 import { escapeHtml } from "./format.js";
+import type { ModelProfile } from "./types.js";
 
-export function appDisplayName(source) {
+export function appDisplayName(source: string | null | undefined) {
   const value = String(source || "unknown").toLowerCase();
   if (value === "codex") return "Codex CLI";
   if (value === "claudecode" || value === "claude") return "Claude Code";
@@ -10,7 +11,7 @@ export function appDisplayName(source) {
   return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
-export function sourceIconName(source) {
+export function sourceIconName(source: string | null | undefined) {
   const key = String(source || "").toLowerCase();
   if (key.includes("codex")) return "codex.svg";
   if (key.includes("claudecode") || key.includes("claude")) return "claudecode.svg";
@@ -21,7 +22,7 @@ export function sourceIconName(source) {
   return "";
 }
 
-export function modelIconName(row) {
+export function modelIconName(row: Pick<ModelProfile, "model" | "source">) {
   const key = String(row.model || "").toLowerCase();
   if (key.includes("claude")) return "claude.svg";
   if (key.includes("gemini")) return "gemini.svg";
@@ -41,7 +42,7 @@ export function modelIconName(row) {
   return "";
 }
 
-export function modelInitials(row) {
+export function modelInitials(row: Pick<ModelProfile, "model" | "source" | "model_family">) {
   const key = String(row.model || "").toLowerCase();
   if (key.includes("opencode") || row.source === "opencode") return "OC";
   if (key.includes("openrouter") || row.source === "zed") return "OR";
@@ -52,11 +53,11 @@ export function modelInitials(row) {
   return "?";
 }
 
-export function iconUrl(name) {
+export function iconUrl(name: string) {
   return `/assets/icons/${encodeURIComponent(name)}`;
 }
 
-export function iconClassName(name, baseClass) {
+export function iconClassName(name: string, baseClass: string) {
   const key = String(name || "").toLowerCase();
   const contrastClass =
     key === "openai.svg" || key === "openrouter.svg" || key === "opencode.svg"
@@ -65,13 +66,13 @@ export function iconClassName(name, baseClass) {
   return `${baseClass}${contrastClass}`;
 }
 
-export function renderAppIcon(source) {
+export function renderAppIcon(source: string | null | undefined) {
   const icon = sourceIconName(source);
   if (!icon) return '<span class="app-dot"></span>';
   return `<img class="${iconClassName(icon, "app-icon")}" src="${iconUrl(icon)}" alt="" loading="lazy" decoding="async" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><span class="app-dot" hidden></span>`;
 }
 
-export function renderModelIcon(row) {
+export function renderModelIcon(row: ModelProfile) {
   const initials = escapeHtml(modelInitials(row));
   const icon = modelIconName(row);
   if (!icon) return `<div class="model-glyph">${initials}</div>`;
