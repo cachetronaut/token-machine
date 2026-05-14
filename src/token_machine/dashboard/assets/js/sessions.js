@@ -17,7 +17,7 @@ export function renderSessions(sessions) {
   text("session-count", `${sessions.length} shown`);
   const root = document.getElementById("recent-sessions");
   if (!sessions.length) {
-    root.innerHTML = '<div class="eyebrow">No sessions yet</div>';
+    root.innerHTML = '<div class="viz-empty"><span>No sessions yet</span></div>';
     knownSessions.clear();
     sessionsPrimed = true;
     return;

@@ -63,9 +63,18 @@ const chartMetricConfig = {
   },
 };
 
+function setStatusState(state) {
+  const status = document.querySelector(".status");
+  if (!status) return;
+  status.classList.remove("status-connecting", "status-live", "status-disconnected");
+  status.classList.add(`status-${state}`);
+}
+
 async function refresh(signal) {
   try {
     const data = await fetchSummary({ signal });
+    document.body.classList.remove("is-loading");
+    setStatusState("live");
     latestSummaryData = data;
     const summary = data.summary;
     metric("sessions", summary.sessions);
@@ -103,6 +112,7 @@ async function refresh(signal) {
     text("status", `Live · updated ${updatedAt}`);
   } catch (error) {
     if (error?.name === "AbortError") return;
+    setStatusState("disconnected");
     text("status", "Disconnected");
   }
 }
@@ -158,7 +168,17 @@ document.querySelectorAll("[data-chart-mode]").forEach((button) => {
     const chartId = button.dataset.chartMode;
     if (chartModes[chartId] === button.dataset.chartValue) return;
     chartModes[chartId] = button.dataset.chartValue;
-    document.getElementById(chartId)?.classList.add("chart-tab-switch");
+    const chart = document.getElementById(chartId);
+    chart?.classList.add("chart-tab-switch");
+    const card = chart?.closest(".ops-card");
+    if (card) {
+      const fadeTargets = card.querySelectorAll(".insight-line, .chart-head .eyebrow, .metric-toggle");
+      fadeTargets.forEach((node) => {
+        node.classList.remove("chart-tab-fade");
+        void node.offsetWidth;
+        node.classList.add("chart-tab-fade");
+      });
+    }
     renderChangedMetricChart(chartId);
   });
 });

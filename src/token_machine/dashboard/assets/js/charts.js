@@ -63,11 +63,11 @@ export function renderModelDistribution(values) {
   if (!entries.length || !total) {
     donut.innerHTML = `
       <svg class="donut-svg" viewBox="0 0 200 200" aria-hidden="true">
-        <path class="donut-segment" d="${donutSlicePath(0, 99.999, 92, 46)}" fill="rgba(255, 255, 255, .065)"></path>
+        <path class="donut-segment" style="--seg-index:0" d="${donutSlicePath(0, 99.999, 92, 46)}" fill="rgba(255, 255, 255, .065)"></path>
       </svg>
       <div class="donut-total"><span>No data</span></div>
     `;
-    legend.innerHTML = '<div class="eyebrow">No model calls yet</div>';
+    legend.innerHTML = vizEmpty("No model calls yet");
     setInsight("models-insight", "No model traffic recorded yet.");
     return;
   }
@@ -86,6 +86,7 @@ export function renderModelDistribution(values) {
     ${donutSvg(segments)}
     <div class="donut-total"><div><strong>${compactNumber(total)}</strong><span>calls</span></div></div>
   `;
+  replayDonutAnimation(donut);
   donut.onmousemove = (event) => {
     const rect = donut.getBoundingClientRect();
     const x = event.clientX - rect.left - rect.width / 2;
@@ -111,10 +112,11 @@ export function renderModelDistribution(values) {
 function donutSvg(segments) {
   const outerRadius = 92;
   const innerRadius = 46;
-  const slices = segments.map((segment) => {
+  const slices = segments.map((segment, index) => {
     return `
       <path
         class="donut-segment"
+        style="--seg-index:${index}"
         d="${donutSlicePath(segment.start, segment.end, outerRadius, innerRadius)}"
         fill="${modelColor(segment.name)}"
       ></path>
@@ -123,6 +125,43 @@ function donutSvg(segments) {
   return `
     <svg class="donut-svg" viewBox="0 0 200 200" aria-hidden="true">
       ${slices}
+    </svg>
+  `;
+}
+
+export function replayDonutAnimation(root) {
+  const donut = root || document.getElementById("models-donut");
+  if (!donut) return;
+  donut.classList.remove("donut-animate-in");
+  void donut.offsetWidth;
+  donut.classList.add("donut-animate-in");
+}
+
+export function vizEmpty(label) {
+  return `<div class="viz-empty"><span>${escapeHtml(label)}</span></div>`;
+}
+
+function chartSkeletonSvg(width = 760, height = 260) {
+  const pad = { top: 28, right: 30, bottom: 44, left: 62 };
+  const innerW = width - pad.left - pad.right;
+  const innerH = height - pad.top - pad.bottom;
+  const midY = pad.top + innerH * 0.58;
+  const grid = [0, .25, .5, .75, 1].map((tick) => {
+    const y = pad.top + innerH - tick * innerH;
+    return `<line class="chart-grid-line" x1="${pad.left}" y1="${y}" x2="${pad.left + innerW}" y2="${y}"/>`;
+  }).join("");
+  const wave = [];
+  const steps = 24;
+  for (let i = 0; i <= steps; i += 1) {
+    const x = pad.left + (innerW * i) / steps;
+    const y = midY + Math.sin(i / 2.4) * 14;
+    wave.push(`${x.toFixed(1)},${y.toFixed(1)}`);
+  }
+  return `
+    <svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="none">
+      ${grid}
+      <polyline class="chart-skeleton-line" points="${wave.join(" ")}"></polyline>
+      <circle class="chart-skeleton-dot" cx="${pad.left + innerW}" cy="${midY}" r="5"></circle>
     </svg>
   `;
 }
@@ -184,7 +223,7 @@ function chartSvg(id, points, getValue, lineColor, fillColor, labelKey, options)
   const values = points.map(getValue);
   const max = Math.max(...values, 1);
   if (!points.length) {
-    return '<text x="24" y="44" fill="#9da4ad" font-size="14">No data yet</text>';
+    return chartSkeletonSvg(width, height);
   }
   const step = points.length > 1 ? innerW / (points.length - 1) : innerW;
   const xy = values.map((value, index) => [

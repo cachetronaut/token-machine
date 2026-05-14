@@ -152,6 +152,69 @@
   animation: chart-switch .58s ease-out both;
 }
 
+.chart-skeleton-line {
+  fill: none;
+  stroke: rgba(255, 255, 255, .14);
+  stroke-width: 2;
+  stroke-dasharray: 6 6;
+  opacity: .58;
+  animation: chart-skeleton-drift 4.8s linear infinite;
+}
+
+.chart-skeleton-dot {
+  fill: rgba(255, 255, 255, .22);
+  animation: chart-skeleton-dot 2.4s ease-in-out infinite;
+}
+
+@keyframes chart-skeleton-drift {
+  0% { stroke-dashoffset: 0; }
+  100% { stroke-dashoffset: -24; }
+}
+
+@keyframes chart-skeleton-dot {
+  0%, 100% { opacity: .3; }
+  50% { opacity: .8; }
+}
+
+.donut-svg {
+  transform-origin: 100px 100px;
+}
+
+@property --donut-reveal {
+  syntax: "<angle>";
+  inherits: true;
+  initial-value: 360deg;
+}
+
+.donut-animate-in .donut-svg {
+  --donut-reveal: 0deg;
+  -webkit-mask: conic-gradient(from -90deg, #000 0deg, #000 var(--donut-reveal), transparent var(--donut-reveal));
+          mask: conic-gradient(from -90deg, #000 0deg, #000 var(--donut-reveal), transparent var(--donut-reveal));
+  animation: donut-sweep 1.6s cubic-bezier(.45, .05, .2, 1) both;
+}
+
+.donut-animate-in .donut-total {
+  animation: donut-total-pop .82s ease-out both;
+  animation-delay: 1.05s;
+}
+
+@keyframes donut-sweep {
+  from { --donut-reveal: 0deg; }
+  to   { --donut-reveal: 360deg; }
+}
+
+
+@keyframes donut-total-pop {
+  from {
+    opacity: 0;
+    transform: scale(.84);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 .tooltip {
   position: fixed;
   z-index: 10;
@@ -224,7 +287,16 @@
   .chart-ball-halo,
   .chart-ball-dot,
   .chart-refresh,
-  .chart-tab-switch {
+  .chart-tab-switch,
+  .chart-skeleton-line,
+  .chart-skeleton-dot,
+  .donut-svg,
+  .donut-segment,
+  .donut-total {
     animation: none;
+  }
+
+  .donut-segment {
+    opacity: 1;
   }
 }

@@ -1,4 +1,4 @@
-import { appColor, hideTooltip, modelColor, showTooltip } from "./charts.js";
+import { appColor, hideTooltip, modelColor, showTooltip, vizEmpty } from "./charts.js";
 import {
   colorFor,
   compactNumber,
@@ -23,7 +23,7 @@ export function renderBars(
   const root = document.getElementById(id);
   const entries = topEntries(values);
   if (!entries.length) {
-    root.innerHTML = '<div class="eyebrow">No data yet</div>';
+    root.innerHTML = vizEmpty(`No ${options.noun || "activity"} yet`);
     renderRankInsight(options.insightId, `No ${options.noun || "activity"} calls yet.`);
     return;
   }
@@ -79,8 +79,7 @@ export function renderModelProfiles(rows) {
         row.tokens.total_tokens),
   );
   if (!visibleRows.length) {
-    root.innerHTML =
-      '<div class="card"><div class="eyebrow">No model data yet</div></div>';
+    root.innerHTML = `<div class="card">${vizEmpty("No model data yet")}</div>`;
     return;
   }
   root.innerHTML = visibleRows
