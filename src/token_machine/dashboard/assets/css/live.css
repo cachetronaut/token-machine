@@ -641,19 +641,53 @@
 
 .live-tools::before {
     position: absolute;
+    z-index: 0;
     top: 7px;
     bottom: 8px;
     left: 9px;
     width: 1px;
     background: linear-gradient(180deg,
-        color-mix(in srgb, var(--live-color), transparent 25%) 0%,
-        color-mix(in srgb, var(--live-color), var(--line) 58%) 100%);
-    box-shadow: 0 0 6px color-mix(in srgb, var(--live-color), transparent 78%);
+        color-mix(in srgb, var(--teal), transparent 55%) 0%,
+        color-mix(in srgb, var(--teal), var(--line) 70%) 100%);
+    box-shadow: 0 0 6px color-mix(in srgb, var(--teal), transparent 82%);
     content: "";
+}
+
+.live-tools::after {
+    position: absolute;
+    z-index: 1;
+    top: 7px;
+    bottom: 8px;
+    left: 9px;
+    width: 1px;
+    background: linear-gradient(180deg, var(--teal), var(--blue), transparent);
+    box-shadow: 0 0 8px color-mix(in srgb, var(--teal), transparent 60%);
+    content: "";
+    transform-origin: top center;
+    animation: live-tools-fill 4.8s ease-out infinite;
+    pointer-events: none;
+}
+
+@keyframes live-tools-fill {
+    0% {
+        opacity: .5;
+        transform: scaleY(0);
+    }
+
+    62% {
+        opacity: 1;
+        transform: scaleY(1);
+    }
+
+    100% {
+        opacity: .26;
+        transform: scaleY(1);
+    }
 }
 
 .live-tool {
     position: relative;
+    z-index: 2;
     display: block;
     min-width: 0;
 }
@@ -673,27 +707,28 @@
     width: 9px;
     height: 9px;
     border-radius: 50%;
-    background: var(--live-color);
-    box-shadow: 0 0 14px var(--live-color);
+    background: var(--live-dot-color, var(--live-color));
+    box-shadow: 0 0 14px var(--live-dot-color, var(--live-color));
 }
 
 .live-tool-current .live-tool-dot {
     animation: live-tool-glow var(--motion-cadence) ease-in-out infinite;
 }
 
-.live-tool-agent .live-tool-dot {
-    background: var(--amber);
-    box-shadow: 0 0 14px rgba(246, 196, 83, .58);
+.live-tool-tool {
+    --live-dot-color: var(--c-tools);
 }
 
-.live-tool-skill .live-tool-dot {
-    background: var(--teal);
-    box-shadow: 0 0 14px rgba(67, 199, 183, .58);
+.live-tool-skill {
+    --live-dot-color: var(--c-skills);
 }
 
-.live-tool-command .live-tool-dot {
-    background: #8c7cff;
-    box-shadow: 0 0 14px rgba(140, 124, 255, .58);
+.live-tool-command {
+    --live-dot-color: var(--c-commands);
+}
+
+.live-tool-agent {
+    --live-dot-color: var(--c-model);
 }
 
 .live-tool-copy {
@@ -746,14 +781,14 @@
 @keyframes live-tool-glow {
     0%,
     100% {
-        box-shadow: 0 0 8px var(--live-color);
+        box-shadow: 0 0 8px var(--live-dot-color, var(--live-color));
         transform: scale(1);
     }
 
     50% {
         box-shadow:
-            0 0 10px var(--live-color),
-            0 0 24px color-mix(in srgb, var(--live-color), transparent 35%);
+            0 0 10px var(--live-dot-color, var(--live-color)),
+            0 0 24px color-mix(in srgb, var(--live-dot-color, var(--live-color)), transparent 35%);
         transform: scale(1.22);
     }
 }
@@ -809,6 +844,7 @@
     .live-led-error,
     .live-state-active::after,
     .live-tool-dot,
+    .live-tools::after,
     .live-lanes-updated .live-lane {
         animation: none;
     }
