@@ -15,6 +15,13 @@
   - `uv run ruff format`: formats the code.
   - `uv run ruff check --fix.`: lint the repository.
   - `uv run ty check`: run type checks.
+- Use `pnpm` for dashboard TypeScript tooling. Do not use `npm` or `npx` for repo scripts.
+  - `pnpm install`: install dashboard toolchain dependencies from `pnpm-lock.yaml`.
+  - `pnpm lint:dashboard`: run Biome checks for dashboard TypeScript and related JS tooling.
+  - `pnpm format:dashboard`: format dashboard TypeScript and related JS tooling with Biome.
+  - `pnpm typecheck`: run TypeScript type checks with `tsc --noEmit`.
+  - `pnpm build:dashboard`: compile dashboard TypeScript into served JavaScript.
+  - `pnpm check:dashboard`: run Biome, TypeScript typecheck, and generated-JS stale-build guard.
 - Use `uv` for adding, installing, and executing Python code
 - If a tool exposes its own CLI, prefer that CLI through `uv run` when possible
 
@@ -23,7 +30,7 @@
 - Write short docstrings only when behavior isn't obvious
 - Avoid single-letter variable names; use explicit pairs like `key` and `value`
 - Model structured data with `dataclass`, Pydantic models, or `TypedDict` instead of raw dictionaries
-- Always ensure typesaftey for runtime validation and enhanced intellisense 
+- Always ensure type safety for runtime validation and enhanced intellisense
 - Share constants and enums rather than duplicating literals
 - Keep changes surgical and follow caution-first approach
 - Use concise sections and sentence-case prose in Markdown docs
@@ -38,6 +45,9 @@
 ## Verification Guidelines
 - New behavior should include targeted tests when practical. Match test names to observable behavior, for example `test_rejects_missing_token`
 - Run checks for every area touched by the change. For cross-cutting work, run every affected section and report any command that could not be run
+- For dashboard TypeScript or generated JavaScript changes, run `pnpm check:dashboard`. If it reports stale generated output, rerun `pnpm check:dashboard` after the guard rebuilds the JavaScript.
+- For Python changes, run `uv run pytest`, `uv run ruff format --check`, `uv run ruff check`, and `uv run ty check`.
+- For cross-cutting changes, run both the dashboard gate and the Python gate before reporting completion.
 
 ## Commit & Pull Request Guidelines
 - Prefer short, imperative commits such as `init`; continue using brief imperative subjects and expand detail in the body when needed

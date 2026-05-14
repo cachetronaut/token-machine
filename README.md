@@ -52,15 +52,20 @@ Use `--store` to write somewhere else. `paths` prints the default store and know
 
 The dashboard serves packaged CSS, JavaScript, images, and SVG icons from local FastAPI routes. It includes packaged fallback assets and can cache a small `@lobehub/icons-static-svg` subset under `store/cache/icons/`. `serve` refreshes that local icon cache on startup by default; use `--no-refresh-icons` to skip the network refresh and use cached or packaged icons only. See `THIRD_PARTY_NOTICES.md` for attribution and license details.
 
+Dashboard browser code is written in TypeScript under `src/token_machine/dashboard/assets/ts/`. The generated JavaScript served by FastAPI lives under `src/token_machine/dashboard/assets/js/`.
+
 ## Development
 
 Run the checks before sending changes:
 
 ```bash
+pnpm check:dashboard
 uv run pytest
 uv run ruff check
 uv run ruff format --check
 uv run ty check
 ```
 
-Read `ARCHITECTURE.md` before adding a source adapter, metric, or dashboard field.
+Use `pnpm format:dashboard` to format dashboard TypeScript and related JavaScript tooling. `pnpm check:dashboard` runs Biome lint/format checks, TypeScript typechecking, and the generated JavaScript stale-build guard.
+
+Read `reference/ARCHITECTURE.md` before adding a source adapter, metric, or dashboard field.

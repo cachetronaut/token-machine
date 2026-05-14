@@ -22,7 +22,7 @@ def test_public_package_has_no_private_product_names() -> None:
 
 
 def test_architecture_doc_has_required_front_matter() -> None:
-    text = Path("ARCHITECTURE.md").read_text(encoding="utf-8")
+    text = Path("reference/ARCHITECTURE.md").read_text(encoding="utf-8")
 
     assert text.startswith("---\n")
     assert "status: active" in text

@@ -1,0 +1,14 @@
+{
+  "packageManager": "pnpm@10.33.2",
+  "scripts": {
+    "lint:dashboard": "biome check src/token_machine/dashboard/assets/ts scripts/check-dashboard-build.mjs package.json tsconfig.json biome.json",
+    "format:dashboard": "biome format --write src/token_machine/dashboard/assets/ts scripts/check-dashboard-build.mjs package.json tsconfig.json biome.json",
+    "typecheck": "tsc --noEmit",
+    "build:dashboard": "tsc -p tsconfig.json",
+    "check:dashboard": "pnpm lint:dashboard && pnpm typecheck && node scripts/check-dashboard-build.mjs"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.4.15",
+    "typescript": "^6.0.3"
+  }
+}

@@ -1,4 +1,5 @@
 from pathlib import Path
+import json
 
 from fastapi.testclient import TestClient
 
@@ -199,9 +200,41 @@ def test_dashboard_live_surface_polls_live_api_and_debug_reload() -> None:
     assert "live-signal-skill" in live_js
     assert "live-signal-command" in live_js
     assert "function liveActionKind" in live_js
-    assert 'if (tool.command) return "command";' in live_js
+    assert "tool.command" in live_js
+    assert 'return "command";' in live_js
     assert "live_tool_calls" in live_js
     assert "live_actions" in live_js
+
+
+def test_dashboard_typescript_sources_back_packaged_javascript() -> None:
+    ts_dir = Path("src/token_machine/dashboard/assets/ts")
+    js_dir = Path("src/token_machine/dashboard/assets/js")
+
+    source_modules = {path.stem for path in ts_dir.glob("*.ts")}
+    generated_modules = {path.stem for path in js_dir.glob("*.js")}
+
+    assert {
+        "api",
+        "charts",
+        "dashboard",
+        "format",
+        "icons",
+        "intro",
+        "live",
+        "models",
+        "sections",
+        "sessions",
+        "types",
+    } <= source_modules
+    assert source_modules <= generated_modules
+
+
+def test_dashboard_typescript_build_scripts_are_registered() -> None:
+    package = json.loads(Path("package.json").read_text(encoding="utf-8"))
+
+    assert package["scripts"]["typecheck"] == "tsc --noEmit"
+    assert package["scripts"]["build:dashboard"] == "tsc -p tsconfig.json"
+    assert "scripts/check-dashboard-build.mjs" in package["scripts"]["check:dashboard"]
 
 
 def test_dashboard_renames_cli_surface_to_executables() -> None:
@@ -224,8 +257,10 @@ def test_dashboard_icon_mappings_include_zed_and_openrouter_models() -> None:
         encoding="utf-8"
     )
 
-    assert 'if (key.includes("zed")) return "zed.svg";' in icons_js
-    assert 'if (key.includes("opencode")) return "opencode.svg";' in icons_js
+    assert 'key.includes("zed")' in icons_js
+    assert 'return "zed.svg";' in icons_js
+    assert 'key.includes("opencode")' in icons_js
+    assert 'return "opencode.svg";' in icons_js
     assert 'return "openrouter.svg";' in icons_js
     assert 'return "deepseek.svg";' in icons_js
     assert 'return "meta.svg";' in icons_js

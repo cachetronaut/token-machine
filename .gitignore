@@ -127,4 +127,5 @@ settings.local.*
 *.pid
 *.pid.lock
 reference/plan/
+node_modules/
 .claude/

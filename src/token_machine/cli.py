@@ -143,12 +143,14 @@ def serve(
     url = f"http://{host}:{port}/"
     typer.echo(f"Serving Token Machine at {url}")
     if open_browser:
+
         def _launch_browser() -> None:
             time.sleep(0.8)
             try:
                 webbrowser.open_new_tab(url)
             except Exception:  # noqa: BLE001
                 pass
+
         threading.Thread(target=_launch_browser, daemon=True).start()
     app_live_targets = () if watch else DEFAULT_WATCH_PATHS
     uvicorn.run(
