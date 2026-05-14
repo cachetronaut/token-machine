@@ -8,6 +8,17 @@
         {% for href in dashboard.css_assets %}
         <link rel="stylesheet" href="{{ href }}" />
         {% endfor %}
+        <script>
+            (function () {
+                try {
+                    var played = sessionStorage.getItem("tm-intro-played") === "1";
+                    var reduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+                    if (!played && !reduced) {
+                        document.documentElement.classList.add("intro-pending");
+                    }
+                } catch (e) {}
+            })();
+        </script>
     </head>
     <body class="is-loading">
         <main>

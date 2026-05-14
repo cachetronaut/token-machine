@@ -50,9 +50,13 @@ function backspaceThenType(el, fromText, toText, timers, startDelay) {
 }
 
 export function playIntro({ force = false } = {}) {
-  if (!force && sessionStorage.getItem(SESSION_KEY) === "1") return;
+  if (!force && sessionStorage.getItem(SESSION_KEY) === "1") {
+    document.documentElement.classList.remove("intro-pending");
+    return;
+  }
   if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
     sessionStorage.setItem(SESSION_KEY, "1");
+    document.documentElement.classList.remove("intro-pending");
     return;
   }
 
@@ -86,6 +90,7 @@ export function playIntro({ force = false } = {}) {
 
   const DISMISS_AT = 4500;
   timers.push(setTimeout(() => {
+    document.documentElement.classList.remove("intro-pending");
     overlay.classList.add("intro-done");
     setTimeout(() => {
       overlay.remove();

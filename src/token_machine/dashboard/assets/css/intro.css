@@ -1,3 +1,8 @@
+html.intro-pending body > main,
+html.intro-pending body > .tooltip {
+  visibility: hidden;
+}
+
 .intro-overlay {
   position: fixed;
   inset: 0;
