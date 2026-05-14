@@ -127,3 +127,4 @@ settings.local.*
 *.pid
 *.pid.lock
 reference/plan/
+.claude/
