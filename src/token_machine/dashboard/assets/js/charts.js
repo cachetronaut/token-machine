@@ -273,12 +273,14 @@ export function renderChart(id, points, getValue, lineColor, fillColor, labelKey
   root.classList.remove("chart-refresh", "chart-tab-switch");
   void root.offsetWidth;
   const meta = {};
-  root.innerHTML = chartSvg(id, points, getValue, lineColor, fillColor, labelKey, options, meta);
+  const svg = chartSvg(id, points, getValue, lineColor, fillColor, labelKey, options, meta);
+  const overlay = chartOverlay(meta, points, getValue);
+  root.innerHTML = `${svg}${overlay}`;
   root.__chartMeta = meta;
   animateSignalChart(root);
   root.classList.add("chart-refresh");
   const hit = root.querySelector(".chart-hit");
-  const dots = root.querySelectorAll(".chart-dot");
+  const dots = root.querySelectorAll(".chart-bead");
   if (hit && points.length) {
     hit.addEventListener("mousemove", (event) => {
       const rect = root.getBoundingClientRect();
@@ -323,7 +325,6 @@ function chartSvg(id, points, getValue, lineColor, fillColor, labelKey, options,
     const y = pad.top + innerH - tick * innerH;
     return `<line class="chart-grid-line" x1="${pad.left}" y1="${y}" x2="${pad.left + innerW}" y2="${y}"/>`;
   }).join("");
-  const dots = xy.map(([x, y], index) => `<circle class="chart-dot" data-index="${index}" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="2.6" fill="${lineColor}"></circle>`).join("");
   const tickCount = Math.min(points.length, points.length >= 7 ? 5 : points.length);
   const tickIndices = [];
   if (tickCount === 1) {
@@ -348,6 +349,10 @@ function chartSvg(id, points, getValue, lineColor, fillColor, labelKey, options,
   if (meta) {
     meta.pad = pad;
     meta.innerW = innerW;
+    meta.innerH = innerH;
+    meta.viewW = width;
+    meta.viewH = height;
+    meta.xy = xy;
     meta.values = values;
     meta.max = max;
     meta.lineColor = lineColor;
@@ -376,24 +381,38 @@ function chartSvg(id, points, getValue, lineColor, fillColor, labelKey, options,
       <text class="chart-axis-label" x="${pad.left - 8}" y="${pad.top + 4}" text-anchor="end">${fmt.format(max)}</text>
       <text class="chart-axis-label" x="${pad.left - 8}" y="${pad.top + innerH}" text-anchor="end">0</text>
       <polygon class="chart-area" points="${area}" fill="url(#${areaGradId})" clip-path="url(#${clipId})"></polygon>
-      <g class="chart-dots" clip-path="url(#${clipId})">${dots}</g>
       <polyline class="chart-line chart-line-progress" points="${line}" stroke="${lineColor}" clip-path="url(#${clipId})"></polyline>
       <polyline class="chart-line chart-line-sheen" points="${line}" stroke="url(#${sheenGradId})" clip-path="url(#${clipId})"></polyline>
-      <g class="chart-value-tag" transform="translate(${xy[0][0].toFixed(1)} ${xy[0][1].toFixed(1)})">
-        <line class="chart-value-guide" x1="${(pad.left - xy[0][0]).toFixed(1)}" y1="0" x2="0" y2="0" stroke="${lineColor}"></line>
-        <g class="chart-value-pill">
-          <rect class="chart-value-bg" x="10" y="-12" rx="6" ry="6" width="60" height="22" fill="#0c0f14" stroke="${lineColor}"></rect>
-          <text class="chart-value-text" x="40" y="3" text-anchor="middle">${escapeHtml(compactNumber(values[0] || 0))}</text>
-        </g>
-      </g>
-      <g class="chart-ball" transform="translate(${xy[0][0].toFixed(1)} ${xy[0][1].toFixed(1)})">
-        <circle class="chart-ball-halo" r="8" fill="${lineColor}"></circle>
-        <circle class="chart-ball-dot" r="5.5" fill="${lineColor}"></circle>
-      </g>
       ${xTicks}
       <text class="chart-axis-title chart-x-axis-title" x="${pad.left + innerW / 2}" y="${height - 4}" text-anchor="middle">${escapeHtml(options.xAxis || labelKey)}</text>
       <rect class="chart-hit" x="0" y="0" width="${width}" height="${height}" fill="transparent"></rect>
     </svg>
+  `;
+}
+
+function chartOverlay(meta, points, getValue) {
+  if (!points.length) return "";
+  const { xy, viewW, viewH, lineColor, values } = meta;
+  const beads = xy.map(([x, y], index) => {
+    const leftPct = (x / viewW * 100).toFixed(3);
+    const topPct = (y / viewH * 100).toFixed(3);
+    return `<span class="chart-bead" data-index="${index}" style="left:${leftPct}%; top:${topPct}%"></span>`;
+  }).join("");
+  const [hx, hy] = xy[0];
+  const headLeft = (hx / viewW * 100).toFixed(3);
+  const headTop = (hy / viewH * 100).toFixed(3);
+  const initialValue = compactNumber(values[0] || 0);
+  return `
+    <div class="chart-overlay" aria-hidden="true">
+      <div class="chart-beads">${beads}</div>
+      <div class="chart-value" style="left:${headLeft}%; top:${headTop}%">
+        <span class="chart-value-pill"><span class="chart-value-text">${escapeHtml(initialValue)}</span></span>
+      </div>
+      <div class="chart-marker" style="left:${headLeft}%; top:${headTop}%">
+        <span class="chart-marker-halo"></span>
+        <span class="chart-marker-dot"></span>
+      </div>
+    </div>
   `;
 }
 
@@ -404,18 +423,20 @@ function animateSignalChart(root) {
   root.classList.remove("chart-motion-done");
   const line = root.querySelector(".chart-line-progress");
   const clip = root.querySelector(".chart-progress-clip");
-  const ball = root.querySelector(".chart-ball");
-  const valueTag = root.querySelector(".chart-value-tag");
-  const valueGuide = root.querySelector(".chart-value-guide");
+  const head = root.querySelector(".chart-marker");
+  const beadsLayer = root.querySelector(".chart-beads");
+  const valueTag = root.querySelector(".chart-value");
   const valuePill = root.querySelector(".chart-value-pill");
   const valueText = root.querySelector(".chart-value-text");
   const points = parsePolylinePoints(line?.getAttribute("points") || "");
-  if (!line || !clip || !ball || points.length === 0) return;
+  if (!line || !clip || !head || points.length === 0) return;
 
   const meta = root.__chartMeta || {};
   const values = meta.values || [];
   const pad = meta.pad || { left: 62 };
   const innerW = meta.innerW || 0;
+  const viewW = meta.viewW || 760;
+  const viewH = meta.viewH || 260;
   const flipThresholdX = pad.left + innerW - 80;
 
   const duration = cssTimeToMs(getComputedStyle(document.documentElement).getPropertyValue("--motion-fill"), 3600);
@@ -429,16 +450,20 @@ function animateSignalChart(root) {
     const visibleWidth = Math.max(0, point.x - firstX + 2);
     const finalWidth = Math.max(0, lastX - firstX + 2);
     clip.setAttribute("width", `${(progress >= 1 ? finalWidth : visibleWidth).toFixed(2)}`);
-    ball.setAttribute("transform", `translate(${point.x.toFixed(2)} ${point.y.toFixed(2)})`);
-    if (valueTag) {
-      valueTag.setAttribute("transform", `translate(${point.x.toFixed(2)} ${point.y.toFixed(2)})`);
+    const leftPct = (point.x / viewW * 100).toFixed(3);
+    const topPct = (point.y / viewH * 100).toFixed(3);
+    head.style.left = `${leftPct}%`;
+    head.style.top = `${topPct}%`;
+    if (beadsLayer) {
+      beadsLayer.style.setProperty("--reveal", `${leftPct}%`);
     }
-    if (valueGuide) {
-      valueGuide.setAttribute("x1", (pad.left - point.x).toFixed(2));
+    if (valueTag) {
+      valueTag.style.left = `${leftPct}%`;
+      valueTag.style.top = `${topPct}%`;
     }
     if (valuePill) {
       const flip = point.x > flipThresholdX;
-      valuePill.setAttribute("transform", flip ? "translate(-80 0)" : "");
+      valuePill.classList.toggle("is-flipped", flip);
     }
     if (valueText && values.length) {
       const fractional = progress * (values.length - 1);
