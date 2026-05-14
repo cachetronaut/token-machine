@@ -87,11 +87,16 @@ function renderLane(snapshot) {
   const color = appColor(snapshot.source);
   const context = snapshot.context || {};
   const contextPercent = Number(context.used_percent || 0);
-  const hasWindow = Number(context.window_tokens || 0) > 0;
-  const usedTokens = Number(context.used_tokens || 0);
-  const contextLabel = contextUsageLabel(context);
-  const width = hasWindow ? Math.max(3, Math.min(100, contextPercent)) : 0;
+  const windowTokens = Number(context.window_tokens || 0);
+  const hasWindow = windowTokens > 0;
+  const usedTokens = Number(context.used_tokens || 0)
+    || (hasWindow && contextPercent ? Math.round((windowTokens * contextPercent) / 100) : 0);
+  const width = hasWindow ? Math.max(0, Math.min(100, contextPercent)) : 0;
   const level = contextLevel(contextPercent, hasWindow);
+  const percentDisplay = hasWindow ? `${fmt.format(contextPercent)}%` : "n/a";
+  const usageDisplay = hasWindow
+    ? `${compactNumber(usedTokens)} / ${compactNumber(windowTokens)}`
+    : "context unset";
   const sourceName = appDisplayName(snapshot.source);
   const model = snapshot.model || "model pending";
   const sessionName = snapshot.session_name || snapshot.session_id || "session pending";
@@ -106,9 +111,9 @@ function renderLane(snapshot) {
   return `
     <article class="live-lane live-lane-${escapeHtml(status)}" style="--live-color:${color}">
       <div class="live-lane-head">
-        <div class="live-source">
+        <div class="live-eyebrow">
           <span class="live-source-icon">${renderAppIcon(snapshot.source)}</span>
-          <span>${escapeHtml(sourceName)}</span>
+          <span class="live-source">${escapeHtml(sourceName)}</span>
         </div>
         <span class="live-state live-state-${escapeHtml(status)}" aria-label="${escapeHtml(status)}" title="${escapeHtml(status)}"></span>
       </div>
@@ -116,18 +121,22 @@ function renderLane(snapshot) {
       <div class="live-session" title="${escapeHtml(snapshot.session_id || "")}">${escapeHtml(sessionName)}</div>
       <div class="live-project" title="${escapeHtml(snapshot.project_path || "")}">${escapeHtml(project)}</div>
       <div class="live-signal-row">
-        <span class="live-signal live-signal-tool">tools ${compactNumber(actionCounts.tools)}</span>
-        <span class="live-signal live-signal-skill">skills ${compactNumber(actionCounts.skills)}</span>
-        <span class="live-signal live-signal-command">commands ${compactNumber(actionCounts.commands)}</span>
-        <span class="live-signal live-signal-agent ${subagents ? "live-signal-hot" : ""}">agents ${compactNumber(subagents)}</span>
+        <span class="live-signal live-signal-tool${actionCounts.tools ? "" : " live-signal-cold"}">tools ${compactNumber(actionCounts.tools)}</span>
+        <span class="live-signal live-signal-skill${actionCounts.skills ? "" : " live-signal-cold"}">skills ${compactNumber(actionCounts.skills)}</span>
+        <span class="live-signal live-signal-command${actionCounts.commands ? "" : " live-signal-cold"}">commands ${compactNumber(actionCounts.commands)}</span>
+        <span class="live-signal live-signal-agent ${subagents ? "live-signal-hot" : "live-signal-cold"}">agents ${compactNumber(subagents)}</span>
         ${compaction.count ? `<span class="live-signal live-signal-compact" title="${escapeHtml(compactionTitle(compaction))}">compact ${compactNumber(compaction.count)}</span>` : ""}
       </div>
-      <div class="live-context-row">
-        <span>context</span>
-        <strong>${escapeHtml(contextLabel)}</strong>
-      </div>
-      <div class="live-context-track ${level}" title="${escapeHtml(contextTitle(context))}">
-        <div class="live-context-fill" style="width:${width}%"></div>
+      <div class="live-context">
+        <div class="live-context-meta">
+          <strong>${escapeHtml(percentDisplay)}</strong>
+          <span>${escapeHtml(usageDisplay)}</span>
+        </div>
+        <div class="live-context-track ${level}" title="${escapeHtml(contextTitle(context))}">
+          <span class="live-context-tick" style="--at:75%"></span>
+          <span class="live-context-tick live-context-tick-critical" style="--at:95%"></span>
+          <div class="live-context-fill" style="--fill-width:${width}%"></div>
+        </div>
       </div>
       <div class="live-microgrid">
         <div><span>prompts</span><strong>${compactNumber(snapshot.user_queries?.count || 0)}</strong></div>
@@ -270,18 +279,6 @@ function sessionUsageLimits(snapshot) {
     ...limit,
     remaining_percent: Math.max(0, 100 - Number(limit.used_percent || 0)),
   }));
-}
-
-function contextUsageLabel(context) {
-  const percent = Number(context.used_percent || 0);
-  const windowTokens = Number(context.window_tokens || 0);
-  const usedTokens = Number(context.used_tokens || 0);
-  const computedUsed = !usedTokens && percent && windowTokens ? Math.round((windowTokens * percent) / 100) : 0;
-  const amount = usedTokens || computedUsed;
-  if (amount && percent) return `${compactNumber(amount)} (${fmt.format(percent)}%)`;
-  if (amount) return compactNumber(amount);
-  if (percent) return `${fmt.format(percent)}%`;
-  return "n/a";
 }
 
 function limitDisplayName(name) {
