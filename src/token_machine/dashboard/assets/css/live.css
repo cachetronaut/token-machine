@@ -76,6 +76,7 @@
     margin-top: 3px;
     overflow: hidden;
     color: var(--muted);
+    font-family: var(--font-body);
     font-size: 12px;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -129,7 +130,9 @@
 .live-tool-copy > span {
     display: block;
     color: var(--muted);
+    font-family: var(--font-display);
     font-size: 10px;
+    font-weight: 600;
     letter-spacing: .08em;
     text-transform: uppercase;
 }
@@ -138,7 +141,9 @@
     display: block;
     margin-top: 3px;
     overflow: hidden;
+    font-family: var(--font-mono);
     font-size: 17px;
+    font-weight: 700;
     line-height: 1;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -243,8 +248,12 @@
 .live-source {
     min-width: 0;
     color: #f4f7fb;
-    font-size: 12px;
-    font-weight: 740;
+    font-family: var(--font-display);
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: .035em;
+    line-height: 1;
+    text-transform: uppercase;
 }
 
 .live-source-icon {
@@ -320,8 +329,10 @@
     margin-top: 10px;
     overflow: hidden;
     color: #fff;
-    font-size: 15px;
-    font-weight: 800;
+    font-family: var(--font-display);
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: .035em;
     line-height: 1.1;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -340,7 +351,7 @@
     margin-top: 5px;
     overflow: hidden;
     color: #dce1e5;
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-family: var(--font-mono);
     font-size: 11px;
     font-weight: 650;
     text-overflow: ellipsis;
@@ -360,9 +371,30 @@
     border-radius: 4px;
     background: rgba(0, 0, 0, .24);
     color: #dce1e5;
+    font-family: var(--font-display);
     font-size: 10px;
+    font-weight: 600;
     letter-spacing: .06em;
     text-transform: uppercase;
+}
+
+.live-signal-tool {
+    border-color: color-mix(in srgb, var(--teal), white 12%);
+    color: #d8fff9;
+}
+
+.live-signal-skill {
+    border-color: color-mix(in srgb, var(--green), white 12%);
+    color: #e0ffe9;
+}
+
+.live-signal-command {
+    border-color: color-mix(in srgb, var(--coral), white 12%);
+    color: #ffe4df;
+}
+
+.live-signal-agent {
+    border-color: color-mix(in srgb, var(--amber), white 12%);
 }
 
 .live-signal-hot {
@@ -383,6 +415,7 @@
 
 .live-context-row strong {
     color: #fff;
+    font-family: var(--font-mono);
     font-size: 18px;
     line-height: 1;
 }
@@ -437,6 +470,7 @@
     margin-top: 3px;
     overflow: hidden;
     color: #fff;
+    font-family: var(--font-mono);
     font-size: 15px;
     line-height: 1;
     text-overflow: ellipsis;
@@ -470,6 +504,7 @@
 
 .live-rate strong {
     color: #fff;
+    font-family: var(--font-mono);
     font-size: 12px;
     line-height: 1;
 }
@@ -545,7 +580,7 @@
     margin-top: 2px;
     overflow: hidden;
     color: #f6f8fb;
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-family: var(--font-mono);
     font-size: 11px;
     font-weight: 650;
     text-overflow: ellipsis;

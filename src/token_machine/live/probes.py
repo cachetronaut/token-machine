@@ -84,7 +84,7 @@ def codex_snapshot(
                     name=skill_name or name,
                     status="current",
                     command=command,
-                    kind="skill" if skill_name else "tool",
+                    kind="skill" if skill_name else _command_kind(command),
                     started_at=timestamp,
                     updated_at=timestamp,
                 )
@@ -200,14 +200,15 @@ def claude_snapshot(
             session_total += usage.total_tokens
         for tool in _claude_tools(message.get("content")):
             tool_input = mapping_value(tool, "input")
+            command = clean_command(
+                string_value(tool_input, "cmd") or string_value(tool_input, "command")
+            )
             tools.append(
                 LiveToolCall(
                     name=string_value(tool, "name"),
                     status="observed",
-                    command=clean_command(
-                        string_value(tool_input, "cmd")
-                        or string_value(tool_input, "command")
-                    ),
+                    command=command,
+                    kind=_command_kind(command),
                     updated_at=timestamp,
                 )
             )
@@ -283,11 +284,13 @@ def gemini_snapshot(
             latest_usage = usage
             session_total += usage.total_tokens
         for tool in _mapping_list(record.get("toolCalls")):
+            command = clean_command(_gemini_command_from_tool(tool))
             tools.append(
                 LiveToolCall(
                     name=string_value(tool, "name"),
                     status="observed",
-                    command=clean_command(_gemini_command_from_tool(tool)),
+                    command=command,
+                    kind=_command_kind(command),
                     updated_at=string_value(tool, "timestamp") or timestamp,
                 )
             )
@@ -398,6 +401,10 @@ def _codex_command(payload: Mapping[str, object]) -> str:
     if not isinstance(parsed, Mapping):
         return ""
     return clean_command(str(parsed.get("cmd") or parsed.get("command") or ""))
+
+
+def _command_kind(command: str) -> str:
+    return "command" if command else "tool"
 
 
 def _context_from_usage(

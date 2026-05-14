@@ -18,7 +18,6 @@
       <div class="card ops-card">
         <div class="chart-head">
           <div><h2>Model distribution</h2><span class="eyebrow">Call distribution</span></div>
-          <span class="ops-badge">fleet</span>
         </div>
         <div class="model-dist">
           <div class="donut" id="models-donut"></div>
@@ -31,6 +30,31 @@
       <div class="subsection-head">
         <span class="subsection-kicker">Model cards</span>
         <span>Aggregated usage by model</span>
+      </div>
+      <div class="badge-legend" aria-label="Model-card badge legend">
+        <div class="badge-legend-group">
+          <span class="badge-legend-title">badges</span>
+          <span class="badge-legend-track">
+            <span class="badge-legend-item"><span class="rank-medallion category-tools tier-3"><span>TL</span></span><span class="badge-legend-copy">tool usage</span></span>
+            <span class="badge-legend-item"><span class="rank-medallion category-commands tier-3"><span>CM</span></span><span class="badge-legend-copy">commands</span></span>
+            <span class="badge-legend-item"><span class="rank-medallion category-skills tier-3"><span>SK</span></span><span class="badge-legend-copy">skills</span></span>
+            <span class="badge-legend-item"><span class="rank-medallion category-context tier-3"><span>CX</span></span><span class="badge-legend-copy">context</span></span>
+            <span class="badge-legend-item"><span class="rank-medallion category-model tier-3"><span>AI</span></span><span class="badge-legend-copy">model class</span></span>
+          </span>
+        </div>
+        <div class="badge-legend-group">
+          <span class="badge-legend-title">tiers</span>
+          <span class="badge-legend-track">
+            <span class="badge-legend-tier-set">
+              <span class="rank-medallion tier-1"><span>1</span></span>
+              <span class="rank-medallion tier-2"><span>2</span></span>
+              <span class="rank-medallion tier-3"><span>3</span></span>
+              <span class="rank-medallion tier-4"><span>4</span></span>
+              <span class="rank-medallion tier-5"><span>5</span></span>
+            </span>
+            <span class="badge-legend-copy">adept to elite</span>
+          </span>
+        </div>
       </div>
       <div class="model-grid" id="model-profiles"></div>
     </div>

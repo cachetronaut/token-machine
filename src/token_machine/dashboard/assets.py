@@ -11,6 +11,7 @@ from fastapi.responses import Response
 _ASSET_SUFFIXES = {
     "css": ".css",
     "js": ".js",
+    "fonts": ".ttf",
     "icons": ".svg",
     "img": ".png",
 }
@@ -18,6 +19,7 @@ _ASSET_SUFFIXES = {
 _MEDIA_TYPES = {
     "css": "text/css; charset=utf-8",
     "js": "text/javascript; charset=utf-8",
+    "fonts": "font/ttf",
     "icons": "image/svg+xml; charset=utf-8",
     "img": "image/png",
 }
@@ -45,7 +47,7 @@ def dashboard_asset_response(
     if not asset.is_file():
         raise HTTPException(status_code=404)
 
-    if kind == "img":
+    if kind in {"fonts", "img"}:
         return Response(
             asset.read_bytes(),
             media_type=_MEDIA_TYPES[kind],

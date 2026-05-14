@@ -28,3 +28,15 @@ Token Machine includes the Zed logomark as a local dashboard source identifier.
 - Included asset: `zed.svg`
 
 The Zed name and logos are trademarks of Zed Industries, Inc. Token Machine uses the mark only to identify locally imported Zed sessions and does not imply endorsement, sponsorship, or an official connection with Zed Industries, Inc.
+
+## Google Fonts
+
+Token Machine vendors selected Google Fonts for offline dashboard typography.
+
+- Source: https://fonts.google.com/
+- Fonts: Orbitron, Teko, Share Tech Mono
+- License: SIL Open Font License 1.1
+- Included assets: `orbitron-700.ttf`, `orbitron-900.ttf`, `teko-500.ttf`,
+  `teko-600.ttf`, `teko-700.ttf`, and `share-tech-mono-400.ttf`
+
+These font files are served locally from `/assets/fonts/{name}.ttf`.

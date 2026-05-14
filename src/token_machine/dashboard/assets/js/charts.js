@@ -105,7 +105,7 @@ export function renderModelDistribution(values) {
       <span>${compactNumber(count)}</span>
     </div>
   `).join("");
-  setInsight("models-insight", `${providerForModel(entries[0][0])} leads the local agent fleet with ${compactNumber(entries[0][1])} model calls.`);
+  setInsight("models-insight", `${providerForModel(entries[0][0])} leads model usage with ${compactNumber(entries[0][1])} model calls.`);
 }
 
 function donutSvg(segments) {

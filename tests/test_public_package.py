@@ -44,3 +44,13 @@ def test_third_party_notices_include_zed_brand_attribution() -> None:
 
     assert "Zed Industries, Inc." in text
     assert "https://zed.dev/brand" in text
+
+
+def test_third_party_notices_include_google_fonts_attribution() -> None:
+    text = Path("THIRD_PARTY_NOTICES.md").read_text(encoding="utf-8")
+
+    assert "Google Fonts" in text
+    assert "Orbitron" in text
+    assert "Teko" in text
+    assert "Share Tech Mono" in text
+    assert "SIL Open Font License 1.1" in text

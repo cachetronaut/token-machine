@@ -36,6 +36,73 @@ def test_dashboard_data_returns_dataclasses_until_route_serialization() -> None:
     assert data.model_profiles[0].model == "gpt-5.4"
 
 
+def test_model_profiles_assign_ranked_intelligence_badges() -> None:
+    events = [
+        _metric_event(f"top-{index}", "gpt-5.4", EventType.TOOL_CALL, tool_name="edit")
+        for index in range(220)
+    ]
+    events += [
+        _metric_event(
+            f"mid-{index}",
+            "claude-sonnet-4.5",
+            EventType.TOOL_CALL,
+            tool_name="read",
+        )
+        for index in range(45)
+    ]
+    events += [
+        _metric_event(
+            f"low-{index}",
+            "qwen2.5-coder:3b",
+            EventType.TOOL_CALL,
+            tool_name="search",
+        )
+        for index in range(4)
+    ]
+    events += [
+        _metric_event(
+            f"floor-{index}",
+            "gpt-5.4-mini",
+            EventType.TOOL_CALL,
+            tool_name="search",
+        )
+        for index in range(6)
+    ]
+
+    data = dashboard_data(events)
+    badges_by_model = {
+        profile.model: [badge.label for badge in profile.intelligence_badges]
+        for profile in data.model_profiles
+    }
+
+    assert "Frontier model" in badges_by_model["gpt-5.4"]
+    assert "Elite toolist" in badges_by_model["gpt-5.4"]
+    assert "Tool champion" in badges_by_model["claude-sonnet-4.5"]
+    assert "Tool adept" not in badges_by_model["qwen2.5-coder:3b"]
+
+
+def _metric_event(
+    event_id: str,
+    model: str,
+    event_type: EventType,
+    *,
+    tool_name: str = "",
+    cli_name: str = "",
+    skill_name: str = "",
+) -> AnalyticsEvent:
+    return AnalyticsEvent(
+        event_id=event_id,
+        event_type=event_type,
+        source=AgentSource.CODEX,
+        source_path="/tmp/session.jsonl",
+        session_id=f"session-{event_id}",
+        model=model,
+        tool_name=tool_name,
+        cli_name=cli_name,
+        skill_name=skill_name,
+    )
+
+
 def test_tool_mix_uses_observed_action_labels_without_merging_kinds() -> None:
     events = [
         AnalyticsEvent(

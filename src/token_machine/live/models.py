@@ -206,15 +206,20 @@ def _mapping_list(value: object) -> list[Mapping[str, object]]:
 def _live_tool_call(item: Mapping[str, object]) -> LiveToolCall:
     command = str(item.get("command", ""))
     executable = str(item.get("executable", "")) or executable_from_command(command)
+    kind = str(item.get("kind", "")) or _default_live_action_kind(command)
     return LiveToolCall(
         name=str(item.get("name", "")),
         status=str(item.get("status", "observed")),
         command=command,
-        kind=str(item.get("kind", "tool")),
+        kind=kind,
         executable=executable,
         started_at=str(item.get("started_at", "")),
         updated_at=str(item.get("updated_at", "")),
     )
+
+
+def _default_live_action_kind(command: str) -> str:
+    return "command" if command else "tool"
 
 
 def _int_string_dict(data: Mapping[str, object]) -> dict[str, int | str]:

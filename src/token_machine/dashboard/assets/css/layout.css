@@ -4,7 +4,7 @@ header {
     justify-content: space-between;
     gap: 16px;
     margin-bottom: 22px;
-    padding: 14px 16px;
+    padding: 16px 18px;
     overflow: hidden;
     border-bottom: 1px solid rgba(255, 255, 255, .07);
     border-radius: 8px;
@@ -22,8 +22,8 @@ header .brand {
 }
 
 header .logo {
-    width: 58px;
-    height: 58px;
+    width: 68px;
+    height: 68px;
     padding: 7px;
     border: 1px solid rgba(255, 255, 255, .08);
     border-radius: 8px;
@@ -41,6 +41,7 @@ header .logo {
     border-radius: 6px;
     background: rgba(9, 12, 16, .38);
     color: var(--muted);
+    font-family: var(--font-mono);
     font-size: 12px;
     white-space: nowrap;
 }
@@ -113,6 +114,7 @@ header .logo {
 .metric .value {
     margin-top: 8px;
     overflow-wrap: anywhere;
+    font-family: var(--font-mono);
     font-size: 25px;
     font-weight: 760;
     font-variant-numeric: tabular-nums;
@@ -207,7 +209,7 @@ header .logo {
     background: transparent;
     color: var(--muted);
     cursor: pointer;
-    font: inherit;
+    font-family: var(--font-mono);
     font-size: 11px;
     font-weight: 760;
 }
@@ -394,10 +396,13 @@ header .logo {
 
 .section-title {
     overflow: hidden;
-    font-size: 16px;
-    font-weight: 800;
-    line-height: 1.05;
+    font-family: var(--font-display);
+    font-size: 23px;
+    font-weight: 700;
+    letter-spacing: .035em;
+    line-height: .85;
     text-overflow: ellipsis;
+    text-transform: uppercase;
     white-space: nowrap;
 }
 
@@ -432,7 +437,7 @@ header .logo {
 }
 
 .section-open .section-body {
-    max-height: 2200px;
+    max-height: 5200px;
     opacity: 1;
     filter: blur(0);
     animation: section-reveal .58s ease-out both;
@@ -454,13 +459,16 @@ header .logo {
     gap: 12px;
     padding: 0 2px;
     color: var(--muted);
+    font-family: var(--font-display);
     font-size: 12px;
+    letter-spacing: .035em;
+    text-transform: uppercase;
 }
 
 .subsection-kicker {
     color: var(--text);
-    font-size: 14px;
-    font-weight: 820;
+    font-size: 18px;
+    font-weight: 700;
 }
 
 .rank-grid {
@@ -511,13 +519,19 @@ header .logo {
 
 .bar-label {
     overflow: hidden;
+    font-family: var(--font-display);
+    font-size: 18px;
     font-weight: 720;
+    letter-spacing: .025em;
+    line-height: 1;
     text-overflow: ellipsis;
+    text-transform: uppercase;
     white-space: nowrap;
 }
 
 .bar-value {
     color: var(--text);
+    font-family: var(--font-mono);
     font-variant-numeric: tabular-nums;
     font-weight: 760;
     text-align: right;

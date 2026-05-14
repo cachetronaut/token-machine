@@ -64,7 +64,7 @@ def test_live_snapshot_mapping_backfills_actions_from_tool_calls() -> None:
         }
     )
 
-    assert snapshot.live_actions[0].kind == "tool"
+    assert snapshot.live_actions[0].kind == "command"
     assert snapshot.live_actions[0].executable == "uv"
 
 
@@ -127,6 +127,7 @@ def test_codex_live_snapshot_extracts_context_queries_and_current_tools() -> Non
     assert snapshot.session_limits[0].remaining_percent == 75
     assert snapshot.live_tool_calls[0].status == "current"
     assert snapshot.live_tool_calls[0].command == "uv run pytest"
+    assert snapshot.live_tool_calls[0].kind == "command"
     assert snapshot.rate_limits[0].used_percent == 25
 
 

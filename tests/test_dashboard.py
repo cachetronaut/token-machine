@@ -100,6 +100,7 @@ def test_fastapi_dashboard_serves_packaged_assets(tmp_path: Path) -> None:
     css_response = client.get("/assets/css/base.css")
     live_css_response = client.get("/assets/css/live.css")
     js_response = client.get("/assets/js/dashboard.js")
+    font_response = client.get("/assets/fonts/orbitron-900.ttf")
     icon_response = client.get("/assets/icons/openai.svg")
     zed_response = client.get("/assets/icons/zed.svg")
     missing_response = client.get("/assets/icons/missing.svg")
@@ -112,6 +113,9 @@ def test_fastapi_dashboard_serves_packaged_assets(tmp_path: Path) -> None:
     assert js_response.status_code == 200
     assert js_response.headers["content-type"].startswith("text/javascript")
     assert js_response.headers["cache-control"] == "no-store"
+    assert font_response.status_code == 200
+    assert font_response.headers["content-type"] == "font/ttf"
+    assert font_response.headers["cache-control"] == "no-store"
     assert icon_response.status_code == 200
     assert icon_response.headers["content-type"].startswith("image/svg+xml")
     assert icon_response.headers["cache-control"] == "no-store"
@@ -160,6 +164,17 @@ def test_dashboard_uses_package_local_icon_urls_only() -> None:
     assert "unpkg.com" not in dashboard_js
 
 
+def test_dashboard_uses_package_local_font_urls_only() -> None:
+    dashboard_css = "\n".join(
+        path.read_text(encoding="utf-8")
+        for path in Path("src/token_machine/dashboard/assets/css").glob("*.css")
+    )
+
+    assert "/assets/fonts/" in dashboard_css
+    assert "fonts.googleapis.com" not in dashboard_css
+    assert "fonts.gstatic.com" not in dashboard_css
+
+
 def test_dashboard_live_surface_polls_live_api_and_debug_reload() -> None:
     dashboard_js = Path("src/token_machine/dashboard/assets/js/dashboard.js").read_text(
         encoding="utf-8"
@@ -187,6 +202,10 @@ def test_dashboard_live_surface_polls_live_api_and_debug_reload() -> None:
     assert "session_limits" in live_js
     assert "Session limit pending" not in live_js
     assert "live-signal-compact" in live_js
+    assert "live-signal-skill" in live_js
+    assert "live-signal-command" in live_js
+    assert "function liveActionKind" in live_js
+    assert 'if (tool.command) return "command";' in live_js
     assert "live_tool_calls" in live_js
     assert "live_actions" in live_js
 
@@ -219,12 +238,34 @@ def test_dashboard_icon_mappings_include_zed_and_openrouter_models() -> None:
     assert "icon-on-dark" in icons_js
 
 
-def test_model_card_back_uses_intelligence_badges_without_corner_icon() -> None:
+def test_model_card_front_uses_rank_medallions_without_back_badges() -> None:
     models_js = Path("src/token_machine/dashboard/assets/js/models.js").read_text(
         encoding="utf-8"
     )
+    model_cards_html = Path(
+        "src/token_machine/dashboard/templates/partials/model_cards.html"
+    ).read_text(encoding="utf-8")
 
     assert '<div class="provider-logo">${renderProviderLogo(row)}</div>' in models_js
-    assert "renderIntelligenceBadges(row)" in models_js
+    assert '<div class="model-art">${renderModelHero(row)}</div>' in models_js
+    assert "renderRankMedallions(row, 3)" in models_js
+    assert 'renderTopList("skills", row.skills, row.skill_calls, 2)' in models_js
+    assert (
+        'renderTopList("executables", row.executables || row.clis, row.command_calls, 2)'
+        in models_js
+    )
+    assert "avg tokens / call" in models_js
+    assert "median first action" not in models_js
+    assert "function renderBackStatMatrix" not in models_js
+    assert "${renderBackStatMatrix(row)}" not in models_js
+    assert "recorded + computed + inferred" not in models_js
+    assert "scouting_report" not in models_js
+    assert "model-tools" not in models_js
+    assert "renderIntelligenceBadges" not in models_js
     assert "renderModelBadgeIcon" not in models_js
     assert "levelIcon" not in models_js
+    assert "badge-legend" in model_cards_html
+    assert "badge-legend-item" in model_cards_html
+    assert "badge-legend-track" in model_cards_html
+    assert "ops-badge" not in model_cards_html
+    assert "Elite toolist" not in model_cards_html

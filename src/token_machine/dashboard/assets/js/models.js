@@ -4,7 +4,6 @@ import {
   compactNumber,
   escapeHtml,
   fmt,
-  formatDuration,
   topEntries,
 } from "./format.js";
 import {
@@ -87,20 +86,17 @@ export function renderModelProfiles(rows) {
   root.innerHTML = visibleRows
     .slice(0, 12)
     .map((row, index) => {
-      const executables = topEntries(row.executables || row.clis, 3)
-        .map(([name, count]) => `${name} ${fmt.format(count)}`)
-        .join(" - ");
-      const skills = topEntries(row.skills, 3)
-        .map(([name, count]) => `${name} ${fmt.format(count)}`)
-        .join(" - ");
       const color = modelCardColor(row);
       const effort =
         row.reasoning_level && row.reasoning_level !== "not in log"
           ? row.reasoning_level
           : "";
-      const firstEdit = formatDuration(
-        rowStat(row, "median_time_to_first_edit_seconds"),
-      );
+      const tokensPerCall = row.model_calls
+        ? Math.round((row.tokens.total_tokens || 0) / row.model_calls)
+        : 0;
+      const tokensPerSession = row.session_count
+        ? Math.round((row.tokens.total_tokens || 0) / row.session_count)
+        : 0;
       return `
       <div class="card model-card" style="--card-color:${color}">
         <div class="model-inner">
@@ -116,6 +112,7 @@ export function renderModelProfiles(rows) {
               </div>
             </div>
             <div class="model-art">${renderModelHero(row)}</div>
+            ${renderRankMedallions(row, 3)}
             <div>
               <div class="mini-stats">
                 <div class="mini-stat"><strong>${compactNumber(row.model_calls)}</strong><span>calls</span></div>
@@ -135,20 +132,15 @@ export function renderModelProfiles(rows) {
               </div>
             </div>
             <div class="card-back-body">
-              ${renderIntelligenceBadges(row)}
-              <div class="mini-stats">
-                <div class="mini-stat"><strong>${escapeHtml(row.workflow_role || "Activity")}</strong><span>inferred role</span></div>
-                <div class="mini-stat"><strong>${escapeHtml(firstEdit)}</strong><span>median first action</span></div>
+              <div class="mini-stats back-usage-stats">
+                <div class="mini-stat"><strong>${compactNumber(tokensPerCall)}</strong><span>avg tokens / call</span></div>
+                <div class="mini-stat"><strong>${compactNumber(tokensPerSession)}</strong><span>avg tokens / session</span></div>
               </div>
-              ${renderBackStatMatrix(row)}
-              ${renderToolMatrix(row)}
-              <div class="stat-table front-stats">
-                ${effort ? `<div class="stat-row"><span>effort</span><strong>${escapeHtml(effort)}</strong></div>` : ""}
-                <div class="stat-row"><span>skills</span><strong>${escapeHtml(skills || "none")}</strong></div>
-                <div class="stat-row"><span>executables</span><strong>${escapeHtml(executables || "none")}</strong></div>
+              <div class="back-rank-panels">
+                ${renderTopList("skills", row.skills, row.skill_calls, 2)}
+                ${renderTopList("executables", row.executables || row.clis, row.command_calls, 2)}
               </div>
-              <div class="model-tools">${escapeHtml(row.scouting_report || "")}</div>
-              <div class="provenance"><span class="provenance-dot"></span>recorded + computed + inferred</div>
+              ${effort ? `<div class="model-effort">effort ${escapeHtml(effort)}</div>` : ""}
             </div>
           </div>
         </div>
@@ -189,71 +181,53 @@ function modelCardColor(row) {
   return appColor(row.source) || colorFor(key);
 }
 
-function renderIntelligenceBadges(row) {
-  const level = badgeLabel(row.intelligence_level || "unclassified");
-  const role = badgeLabel(row.workflow_role || "activity");
-  const toolMultiplier = multiplier(row.tool_calls, row.model_calls);
-  const skillMultiplier = multiplier(row.skill_calls || 0, row.session_count || 0);
-  const badges = [
-    ["level", level],
-    ["role", role],
-    ["tools", `${toolMultiplier}x tools`],
-    ["skills", `${skillMultiplier}x skills`],
-  ];
+function renderRankMedallions(row, limit = 3) {
+  const badges = row.intelligence_badges?.slice(0, limit) || [];
+  if (!badges.length) return '<div class="rank-medallion-strip"></div>';
   return `
-    <div class="intelligence-badges" aria-label="Model intelligence badges">
+    <div class="rank-medallion-strip" aria-label="Model rank badges">
       ${badges
-        .map(
-          ([label, value]) =>
-            `<span class="intelligence-badge"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong></span>`,
-        )
+        .map((badge) => {
+          const category = String(badge.category || "rank").toLowerCase();
+          const letters = categoryCode(category);
+          const label = `${badge.label || ""} - ${badge.metric || ""}: ${compactNumber(badge.score || 0)}`;
+          return `<span class="rank-medallion category-${escapeHtml(category)} tier-${escapeHtml(badge.tier || 1)}" title="${escapeHtml(label)}" aria-label="${escapeHtml(label)}"><span>${escapeHtml(letters)}</span></span>`;
+        })
         .join("")}
     </div>
   `;
 }
 
-function badgeLabel(value) {
-  return String(value || "unknown")
-    .replace(/[_-]+/g, " ")
-    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+function categoryCode(category) {
+  const codes = {
+    tools: "TL",
+    commands: "CM",
+    skills: "SK",
+    context: "CX",
+    model: "AI",
+  };
+  return codes[category] || "RK";
 }
 
-function multiplier(count, base) {
-  if (!count || !base) return "1.0";
-  return Math.min(2, Math.max(1, count / base)).toFixed(1);
-}
-
-function rowStat(row, key) {
-  return row.stats?.[key] || 0;
-}
-
-function renderBackStatMatrix(row) {
-  const meanDuration = formatDuration(rowStat(row, "mean_duration_seconds"));
-  const medianDuration = formatDuration(rowStat(row, "median_duration_seconds"));
-  const medianFirstTool = formatDuration(rowStat(row, "median_time_to_first_tool_seconds"));
-  return `
-    <div class="stat-matrix">
-      <div class="matrix-row matrix-head"><div class="matrix-cell"></div><div class="matrix-cell">mean</div><div class="matrix-cell">median</div><div class="matrix-cell">mode</div></div>
-      <div class="matrix-row"><div class="matrix-cell matrix-label">calls</div><div class="matrix-cell matrix-value">${compactNumber(rowStat(row, "mean_model_calls_per_session"))}</div><div class="matrix-cell matrix-value">${compactNumber(rowStat(row, "median_model_calls_per_session"))}</div><div class="matrix-cell matrix-value">${compactNumber(row.model_calls)}</div></div>
-      <div class="matrix-row"><div class="matrix-cell matrix-label">tools</div><div class="matrix-cell matrix-value">${compactNumber(rowStat(row, "mean_tool_calls_per_session"))}</div><div class="matrix-cell matrix-value">${compactNumber(rowStat(row, "median_tool_calls_per_session"))}</div><div class="matrix-cell matrix-value">${compactNumber(row.tool_calls)}</div></div>
-      <div class="matrix-row"><div class="matrix-cell matrix-label">skills</div><div class="matrix-cell matrix-value">${compactNumber(rowStat(row, "mean_skill_calls_per_session"))}</div><div class="matrix-cell matrix-value">${compactNumber(rowStat(row, "median_skill_calls_per_session"))}</div><div class="matrix-cell matrix-value">${compactNumber(row.skill_calls || 0)}</div></div>
-      <div class="matrix-row"><div class="matrix-cell matrix-label">tokens</div><div class="matrix-cell matrix-value">${compactNumber(rowStat(row, "mean_tokens_per_session"))}</div><div class="matrix-cell matrix-value">${compactNumber(rowStat(row, "median_tokens_per_session"))}</div><div class="matrix-cell matrix-value">${compactNumber(row.tokens.total_tokens || 0)}</div></div>
-      <div class="matrix-row"><div class="matrix-cell matrix-label">time</div><div class="matrix-cell matrix-value">${escapeHtml(meanDuration)}</div><div class="matrix-cell matrix-value">${escapeHtml(medianDuration)}</div><div class="matrix-cell matrix-value">${escapeHtml(medianFirstTool)}</div></div>
-    </div>
-  `;
-}
-
-function renderToolMatrix(row) {
-  const rows = (row.tool_mix || []).slice(0, 3);
+function renderTopList(title, values, total, limit = 3) {
+  const rows = topEntries(values, limit);
   if (!rows.length) return "";
+  const max = Math.max(...rows.map(([, count]) => count), 1);
   return `
-    <div class="tool-matrix">
-      <div class="matrix-row matrix-head"><div class="matrix-cell">tool</div><div class="matrix-cell">count</div><div class="matrix-cell">share</div></div>
+    <div class="back-rank-panel">
+      <div class="back-rank-title">${escapeHtml(title)}</div>
       ${rows
         .map(
-          (item) => `
-        <div class="matrix-row" title="${escapeHtml(item.description || "")}"><div class="matrix-cell matrix-label">${escapeHtml(item.category)}</div><div class="matrix-cell matrix-value">${fmt.format(item.count || 0)}</div><div class="matrix-cell matrix-value">${fmt.format(item.percent || 0)}%</div></div>
-      `,
+          ([name, count]) => {
+            const width = Math.max(6, (count / max) * 100);
+            const share = total ? Math.round((count / total) * 100) : 0;
+            return `
+        <div class="back-rank-row" title="${escapeHtml(name)}: ${fmt.format(count)}">
+          <div class="back-rank-copy"><span>${escapeHtml(name)}</span><strong>${compactNumber(count)}${share ? ` · ${share}%` : ""}</strong></div>
+          <div class="back-rank-track"><span style="width:${width}%"></span></div>
+        </div>
+      `;
+          },
         )
         .join("")}
     </div>

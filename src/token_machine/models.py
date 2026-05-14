@@ -230,6 +230,15 @@ class ToolMixItem:
 
 
 @dataclass(frozen=True)
+class ModelIntelligenceBadge:
+    category: str
+    label: str
+    tier: int
+    score: int
+    metric: str
+
+
+@dataclass(frozen=True)
 class SessionProfile:
     rollup: SessionRollup
     duration_seconds: int
@@ -247,6 +256,7 @@ class ModelProfile:
     source: AgentSource
     sources: dict[str, int]
     intelligence_level: str
+    intelligence_badges: list[ModelIntelligenceBadge]
     reasoning_level: str
     session_count: int
     project_count: int

@@ -97,6 +97,7 @@ function renderLane(snapshot) {
   const sessionName = snapshot.session_name || snapshot.session_id || "session pending";
   const project = projectName(snapshot.project_path) || "workspace pending";
   const tools = liveActions(snapshot);
+  const actionCounts = liveActionCounts(tools);
   const subagents = snapshotSubagentCount(snapshot);
   const sessionLimits = sessionUsageLimits(snapshot);
   const compaction = snapshot.compaction || {};
@@ -115,8 +116,10 @@ function renderLane(snapshot) {
       <div class="live-session" title="${escapeHtml(snapshot.session_id || "")}">${escapeHtml(sessionName)}</div>
       <div class="live-project" title="${escapeHtml(snapshot.project_path || "")}">${escapeHtml(project)}</div>
       <div class="live-signal-row">
-        <span class="live-signal">tools ${compactNumber(tools.length)}</span>
-        <span class="live-signal ${subagents ? "live-signal-hot" : ""}">agents ${compactNumber(subagents)}</span>
+        <span class="live-signal live-signal-tool">tools ${compactNumber(actionCounts.tools)}</span>
+        <span class="live-signal live-signal-skill">skills ${compactNumber(actionCounts.skills)}</span>
+        <span class="live-signal live-signal-command">commands ${compactNumber(actionCounts.commands)}</span>
+        <span class="live-signal live-signal-agent ${subagents ? "live-signal-hot" : ""}">agents ${compactNumber(subagents)}</span>
         ${compaction.count ? `<span class="live-signal live-signal-compact" title="${escapeHtml(compactionTitle(compaction))}">compact ${compactNumber(compaction.count)}</span>` : ""}
       </div>
       <div class="live-context-row">
@@ -171,7 +174,7 @@ function renderTools(tools, snapshot) {
       ${orderedTools
         .map((tool, index) => {
           const command = tool.command || "";
-          const kind = tool.kind || "tool";
+          const kind = liveActionKind(tool);
           const executable = tool.executable || "";
           const label = command ? commandLabel(command) : executable || tool.name || kind;
           const subagentClass = isSubagentTool(tool) ? " live-tool-agent" : "";
@@ -241,7 +244,7 @@ function limitTitle(limit) {
 }
 
 function toolTitle(tool) {
-  return [tool.kind, tool.status, tool.executable, tool.command, tool.updated_at]
+  return [liveActionKind(tool), tool.status, tool.executable, tool.command, tool.updated_at]
     .filter(Boolean)
     .join(" · ");
 }
@@ -374,6 +377,28 @@ function liveSignature(snapshots) {
 
 function subagentCount(tools) {
   return tools.filter(isSubagentTool).length;
+}
+
+function liveActionCounts(tools) {
+  return tools.reduce(
+    (counts, tool) => {
+      const kind = liveActionKind(tool);
+      if (kind === "skill") counts.skills += 1;
+      else if (kind === "command") counts.commands += 1;
+      else counts.tools += 1;
+      return counts;
+    },
+    { tools: 0, skills: 0, commands: 0 },
+  );
+}
+
+function liveActionKind(tool) {
+  const kind = String(tool.kind || "tool").toLowerCase();
+  if (kind === "skill" || kind === "command") return kind;
+  if (tool.command) return "command";
+  const name = String(tool.name || "").toLowerCase();
+  if (["exec_command", "run_shell_command", "bash"].includes(name)) return "command";
+  return "tool";
 }
 
 function snapshotSubagentCount(snapshot) {
