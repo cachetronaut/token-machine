@@ -38,26 +38,40 @@
 .timeline-item {
   position: relative;
   z-index: 2;
-  display: grid;
-  grid-template-columns: 94px minmax(0, 1fr);
-  align-items: start;
+  display: flex;
+  align-items: flex-start;
   gap: 10px;
 }
 
-.timeline-item::before {
+.timeline-dot {
   position: absolute;
   z-index: 3;
-  top: calc(var(--timeline-dot-center-y) - (var(--timeline-dot-size) / 2));
-  left: calc(var(--timeline-rail-left) - var(--timeline-row-left) - (var(--timeline-dot-size) / 2));
+  top: var(--timeline-dot-center-y);
+  left: calc(var(--timeline-rail-left) - var(--timeline-row-left));
   width: var(--timeline-dot-size);
   height: var(--timeline-dot-size);
+  margin-top: calc(var(--timeline-dot-size) / -2);
+  margin-left: calc(var(--timeline-dot-size) / -2);
   border-radius: 50%;
   background: var(--project-color);
   box-shadow: 0 0 16px var(--project-color);
+}
+
+.timeline-dot::after {
+  position: absolute;
+  inset: -5px;
+  border: 1px solid var(--project-color);
+  border-radius: inherit;
   content: "";
+  opacity: 0;
+}
+
+.session-item-current .timeline-dot::after {
+  animation: session-dot-pulse var(--motion-cadence) ease-out infinite;
 }
 
 .time-label {
+  flex: 0 0 94px;
   color: var(--muted);
   font-family: var(--font-mono);
   font-size: 11px;
@@ -65,6 +79,7 @@
 }
 
 .timeline-card {
+  flex: 1 1 0;
   display: grid;
   min-width: 0;
   gap: 4px;
@@ -117,10 +132,6 @@
   overflow-x: auto;
 }
 
-.session-item-current::before {
-  animation: session-dot-pulse var(--motion-cadence) ease-out infinite;
-}
-
 .session-item-new {
   animation: session-slide-in .58s ease-out both;
 }
@@ -144,15 +155,14 @@
 
 @keyframes session-dot-pulse {
   0% {
-    box-shadow: 0 0 0 0 color-mix(in srgb, var(--project-color), transparent 32%);
+    opacity: .7;
+    transform: scale(.65);
   }
 
-  70% {
-    box-shadow: 0 0 0 8px color-mix(in srgb, var(--project-color), transparent 100%);
-  }
-
+  70%,
   100% {
-    box-shadow: 0 0 0 0 color-mix(in srgb, var(--project-color), transparent 100%);
+    opacity: 0;
+    transform: scale(1.45);
   }
 }
 
@@ -209,14 +219,14 @@
 
 @media (max-width: 920px) {
   .timeline-item {
-    grid-template-columns: 1fr;
+    flex-direction: column;
     gap: 4px;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .timeline::after,
-  .session-item-current::before,
+  .session-item-current .timeline-dot::after,
   .session-item-new,
   .session-item-new .session-copy,
   .session-item-new .flip-count {

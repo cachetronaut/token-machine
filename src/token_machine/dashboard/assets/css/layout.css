@@ -542,15 +542,14 @@ header .brand-wordmark {
 
 .ops-card-active .chart-head h2::before,
 .insight-line::before {
-    width: 7px;
-    height: 7px;
+    width: 8px;
+    height: 8px;
     flex: 0 0 auto;
     border-radius: 50%;
     background: var(--ops-color, var(--teal));
-    box-shadow: 0 0 12px color-mix(in srgb, var(--ops-color, var(--teal)), transparent 24%);
+    box-shadow: 0 0 18px var(--ops-color, var(--teal));
     content: "";
-    animation: signal-dot 2.4s ease-in-out infinite;
-    animation-duration: var(--motion-cadence);
+    animation: signal-dot var(--motion-cadence) ease-in-out infinite;
 }
 
 .metric-toggle {
@@ -687,25 +686,24 @@ header .brand-wordmark {
         color-mix(in srgb, var(--green), white 18%) 0%,
         var(--green) 55%,
         color-mix(in srgb, var(--green), black 18%) 100%);
-    box-shadow:
-        inset 0 0 6px rgba(255, 255, 255, .25),
-        0 0 10px rgba(88, 214, 141, .35),
-        0 0 22px rgba(88, 214, 141, .55);
-}
-
-.section-led-pulse {
     animation: section-pulse var(--motion-cadence) ease-in-out infinite;
 }
 
 @keyframes section-pulse {
     0%,
     100% {
-        opacity: .72;
-        box-shadow: 0 0 12px rgba(88, 214, 141, .38);
+        opacity: .78;
+        box-shadow:
+            inset 0 0 6px rgba(255, 255, 255, .25),
+            0 0 10px rgba(88, 214, 141, .32),
+            0 0 16px rgba(88, 214, 141, .42);
     }
     50% {
         opacity: 1;
-        box-shadow: 0 0 24px rgba(88, 214, 141, .72);
+        box-shadow:
+            inset 0 0 6px rgba(255, 255, 255, .25),
+            0 0 14px rgba(88, 214, 141, .55),
+            0 0 26px rgba(88, 214, 141, .72);
     }
 }
 
@@ -1464,7 +1462,7 @@ body.is-loading::after {
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .section-led-pulse,
+    .section-led,
     .ops-card-active .chart-head h2::before,
     .insight-line::before,
     .pulse,

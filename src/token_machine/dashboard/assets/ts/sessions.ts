@@ -55,6 +55,7 @@ export function renderSessions(sessions: SessionProfile[]) {
       const isCurrent = session === sessions[0];
       return `
       <div class="timeline-item session-item${isNew ? " session-item-new" : ""}${isCurrent ? " session-item-current" : ""}" style="--project-color:${color}" data-session-key="${escapeHtml(sessionKey)}">
+        <span class="timeline-dot" aria-hidden="true"></span>
         <div class="time-label">${escapeHtml(ended.replace("T", " "))}</div>
         <div class="timeline-card" data-tip="<strong>${escapeHtml(project)}</strong>${escapeHtml(role)} · ${escapeHtml(appLabel)}<br>${fmt.format(rollup.model_calls || 0)} model calls, ${fmt.format(rollup.tool_calls || 0)} tool calls, ${fmt.format(rollup.skill_calls || 0)} skill calls<br>${fmt.format(rollup.command_calls || rollup.cli_commands || 0)} command actions · ${duration} duration<br>Tools: ${escapeHtml(tools || "none")}<br>Skills: ${escapeHtml(skills || "none")}<br>Executables: ${escapeHtml(executables || "none")}<br>First action: ${firstTool}<br>${fmt.format(rollup.tokens?.total_tokens || 0)} tokens">
           <div class="session-copy">

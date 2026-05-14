@@ -381,22 +381,23 @@
   left: 0;
   top: 0;
   border-radius: 50%;
-  background: var(--chart-color, var(--teal));
   transform-origin: center;
-}
-
-.chart-marker-halo {
-  width: 22px;
-  height: 22px;
-  margin: -11px 0 0 -11px;
-  opacity: 0;
 }
 
 .chart-marker-dot {
   width: 11px;
   height: 11px;
   margin: -5.5px 0 0 -5.5px;
-  filter: drop-shadow(0 0 8px color-mix(in srgb, var(--chart-color, var(--teal)), transparent 42%));
+  background: var(--chart-color, var(--teal));
+  box-shadow: 0 0 12px var(--chart-color, var(--teal));
+}
+
+.chart-marker-halo {
+  width: 22px;
+  height: 22px;
+  margin: -11px 0 0 -11px;
+  border: 1px solid var(--chart-color, var(--teal));
+  opacity: 0;
 }
 
 .chart-value {
@@ -439,11 +440,7 @@
 }
 
 .chart-motion-done .chart-marker-halo {
-  animation: chart-marker-halo-pulse var(--motion-cadence) ease-in-out infinite;
-}
-
-.chart-motion-done .chart-marker-dot {
-  animation: chart-marker-core-pulse var(--motion-cadence) ease-in-out infinite;
+  animation: chart-marker-pulse var(--motion-cadence) ease-out infinite;
 }
 
 .chart-refresh,
@@ -598,31 +595,16 @@
   text-transform: uppercase;
 }
 
-@keyframes chart-marker-halo-pulse {
-  0%,
+@keyframes chart-marker-pulse {
+  0% {
+    opacity: .7;
+    transform: scale(.5);
+  }
+
+  70%,
   100% {
-    opacity: .08;
-    transform: scale(.82);
-  }
-
-  50% {
-    opacity: .42;
-    transform: scale(1.18);
-  }
-}
-
-@keyframes chart-marker-core-pulse {
-  0%,
-  100% {
-    opacity: .86;
-    transform: scale(1);
-    filter: drop-shadow(0 0 10px color-mix(in srgb, var(--chart-color, var(--teal)), transparent 34%));
-  }
-
-  50% {
-    opacity: 1;
-    transform: scale(1.12);
-    filter: drop-shadow(0 0 18px color-mix(in srgb, var(--chart-color, var(--teal)), transparent 12%));
+    opacity: 0;
+    transform: scale(1.45);
   }
 }
 
