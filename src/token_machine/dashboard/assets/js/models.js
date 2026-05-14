@@ -33,14 +33,21 @@ export function renderBars(
       ([name, count], index) => {
         const width = Math.max(3, (count / max) * 100);
         const description = options.descriptions?.[name] || "";
+        const leader = index === 0 ? " bar-row-leader" : "";
+        const share = Math.round((count / max) * 100);
         return `
-    <div class="bar-row" title="${escapeHtml(name)}" style="--bar-width:${width}%; --bar-index:${index}">
+    <div class="bar-row${leader}" title="${escapeHtml(name)}" style="--bar-width:${width}%; --bar-index:${index}">
       <div class="bar-main">
         <div class="bar-top">
+          <span class="bar-rank" aria-hidden="true">${String(index + 1).padStart(2, "0")}</span>
           <div class="bar-label">${escapeHtml(name)}</div>
-          <div class="bar-value">${fmt.format(count)}</div>
+          <div class="bar-value">${fmt.format(count)}<span class="bar-share">${share}%</span></div>
         </div>
-        <div class="bar-track"><div class="bar-fill"></div><span class="bar-runner" aria-hidden="true"></span></div>
+        <div class="bar-track">
+          <span class="bar-ticks" aria-hidden="true"></span>
+          <div class="bar-fill"><span class="bar-fill-sheen" aria-hidden="true"></span></div>
+          <span class="bar-runner" aria-hidden="true"></span>
+        </div>
         ${description ? `<div class="bar-desc">${escapeHtml(description)}</div>` : ""}
       </div>
     </div>

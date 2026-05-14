@@ -527,9 +527,59 @@ header .logo {
 
 .bar-top {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-columns: auto minmax(0, 1fr) auto;
     align-items: baseline;
-    gap: 8px;
+    gap: 10px;
+}
+
+.bar-rank {
+    align-self: center;
+    min-width: 26px;
+    padding: 2px 6px;
+    border: 1px solid color-mix(in srgb, var(--ops-color, var(--teal)), transparent 60%);
+    border-radius: 4px;
+    background: color-mix(in srgb, var(--ops-color, var(--teal)), transparent 84%);
+    color: color-mix(in srgb, var(--ops-color, var(--teal)), white 28%);
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: .12em;
+    text-align: center;
+    text-transform: uppercase;
+}
+
+.bar-share {
+    margin-left: 8px;
+    padding: 1px 5px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, .055);
+    color: var(--muted);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: .04em;
+}
+
+.bar-row-leader {
+    border-color: color-mix(in srgb, var(--ops-color, var(--teal)), transparent 50%);
+    background:
+        linear-gradient(90deg,
+            color-mix(in srgb, var(--ops-color, var(--teal)), transparent 88%) 0%,
+            rgba(10, 14, 19, .36) 65%);
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--ops-color, var(--teal)), transparent 78%) inset;
+}
+
+.bar-row-leader .bar-rank {
+    background: color-mix(in srgb, var(--ops-color, var(--teal)), transparent 68%);
+    color: color-mix(in srgb, var(--ops-color, var(--teal)), white 48%);
+    box-shadow: 0 0 12px color-mix(in srgb, var(--ops-color, var(--teal)), transparent 58%);
+}
+
+.bar-row-leader .bar-label::after {
+    content: "▲";
+    margin-left: 6px;
+    color: color-mix(in srgb, var(--ops-color, var(--teal)), white 18%);
+    font-size: 9px;
+    vertical-align: middle;
 }
 
 .bar-label {
@@ -567,15 +617,45 @@ header .logo {
     background: rgba(255, 255, 255, .08);
 }
 
+.bar-ticks {
+    position: absolute;
+    inset: 0;
+    background-image: linear-gradient(90deg, rgba(255, 255, 255, .12) 1px, transparent 1px);
+    background-size: 10% 100%;
+    opacity: .55;
+    pointer-events: none;
+}
+
 .bar-fill {
+    position: relative;
     width: var(--bar-width, 0%);
     height: 100%;
+    overflow: hidden;
     border-radius: 99px;
     background:
         linear-gradient(90deg, color-mix(in srgb, var(--ops-color, var(--teal)), black 18%), var(--ops-color, var(--teal)));
     box-shadow: 0 0 10px color-mix(in srgb, var(--ops-color, var(--teal)), transparent 64%);
     transform-origin: left center;
     animation: rank-bar-fill var(--motion-fill) ease-out both;
+}
+
+.bar-fill-sheen {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: -40%;
+    width: 35%;
+    background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, .55) 50%, transparent 100%);
+    mix-blend-mode: screen;
+    pointer-events: none;
+    animation: bar-fill-sheen 4.6s ease-in-out infinite;
+    animation-delay: calc(var(--bar-index, 0) * .35s);
+}
+
+.bar-row-leader .bar-fill {
+    box-shadow:
+        0 0 12px color-mix(in srgb, var(--ops-color, var(--teal)), transparent 44%),
+        0 0 22px color-mix(in srgb, var(--ops-color, var(--teal)), transparent 70%);
 }
 
 .bar-runner {
@@ -688,6 +768,13 @@ header .logo {
         left: var(--bar-width, 0%);
         transform: translate(-50%, -50%) scale(1);
     }
+}
+
+@keyframes bar-fill-sheen {
+    0% { transform: translateX(0); opacity: 0; }
+    18% { opacity: 1; }
+    65% { transform: translateX(420%); opacity: .9; }
+    100% { transform: translateX(420%); opacity: 0; }
 }
 
 @keyframes rank-runner-pulse {
@@ -1014,6 +1101,7 @@ body.is-loading::after {
     .metric-value-refresh,
     .section-open .section-body,
     .bar-fill,
+    .bar-fill-sheen,
     .bar-runner,
     body.is-loading::after,
     .ghost-bar .ghost-line,

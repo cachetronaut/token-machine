@@ -81,10 +81,12 @@ export function renderModelDistribution(values) {
     segments.push({ name, count, start, end, provider: providerForModel(name) });
   });
 
-  donut.style.setProperty("--chart-color", modelColor(entries[0][0]));
+  const leaderColor = modelColor(entries[0][0]);
+  donut.style.setProperty("--chart-color", leaderColor);
   donut.innerHTML = `
+    <div class="donut-aura" aria-hidden="true"></div>
     ${donutSvg(segments)}
-    <div class="donut-total"><div><strong>${compactNumber(total)}</strong><span>calls</span></div></div>
+    <div class="donut-total"><div><strong>${compactNumber(total)}</strong><span>calls</span><span class="donut-leader-tag" style="--leader-color:${leaderColor}">${escapeHtml(providerForModel(entries[0][0]))} lead</span></div></div>
   `;
   replayDonutAnimation(donut);
   donut.onmousemove = (event) => {
@@ -113,9 +115,10 @@ function donutSvg(segments) {
   const outerRadius = 92;
   const innerRadius = 46;
   const slices = segments.map((segment, index) => {
+    const leader = index === 0 ? " donut-segment-leader" : "";
     return `
       <path
-        class="donut-segment"
+        class="donut-segment${leader}"
         style="--seg-index:${index}"
         d="${donutSlicePath(segment.start, segment.end, outerRadius, innerRadius)}"
         fill="${modelColor(segment.name)}"
@@ -247,9 +250,28 @@ function chartSvg(id, points, getValue, lineColor, fillColor, labelKey, options,
     const y = pad.top + innerH - tick * innerH;
     return `<line class="chart-grid-line" x1="${pad.left}" y1="${y}" x2="${pad.left + innerW}" y2="${y}"/>`;
   }).join("");
-  const firstLabel = points[0]?.[labelKey] || "";
-  const lastLabel = points[points.length - 1]?.[labelKey] || "";
   const dots = xy.map(([x, y], index) => `<circle class="chart-dot" data-index="${index}" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="2.6" fill="${lineColor}"></circle>`).join("");
+  const tickCount = Math.min(points.length, points.length >= 7 ? 5 : points.length);
+  const tickIndices = [];
+  if (tickCount === 1) {
+    tickIndices.push(0);
+  } else {
+    for (let t = 0; t < tickCount; t += 1) {
+      tickIndices.push(Math.round((points.length - 1) * (t / (tickCount - 1))));
+    }
+  }
+  const seenTicks = new Set();
+  const xTicks = tickIndices
+    .filter((i) => { if (seenTicks.has(i)) return false; seenTicks.add(i); return true; })
+    .map((i) => {
+      const x = xy[i][0];
+      const label = points[i]?.[labelKey] || "";
+      const anchor = i === 0 ? "start" : i === points.length - 1 ? "end" : "middle";
+      return `
+        <line class="chart-x-tick" x1="${x.toFixed(1)}" y1="${(pad.top + innerH).toFixed(1)}" x2="${x.toFixed(1)}" y2="${(pad.top + innerH + 5).toFixed(1)}"></line>
+        <text class="chart-axis-label chart-x-label" x="${x.toFixed(1)}" y="${(pad.top + innerH + 18).toFixed(1)}" text-anchor="${anchor}">${escapeHtml(formatTickLabel(label))}</text>
+      `;
+    }).join("");
   if (meta) {
     meta.pad = pad;
     meta.innerW = innerW;
@@ -295,9 +317,8 @@ function chartSvg(id, points, getValue, lineColor, fillColor, labelKey, options,
         <circle class="chart-ball-halo" r="8" fill="${lineColor}"></circle>
         <circle class="chart-ball-dot" r="5.5" fill="${lineColor}"></circle>
       </g>
-      <text class="chart-axis-label" x="${pad.left}" y="${height - 10}">${escapeHtml(firstLabel)}</text>
-      <text class="chart-axis-label" x="${pad.left + innerW}" y="${height - 10}" text-anchor="end">${escapeHtml(lastLabel)}</text>
-      <text class="chart-axis-title" x="${pad.left + innerW / 2}" y="${height - 10}" text-anchor="middle">${escapeHtml(options.xAxis || labelKey)}</text>
+      ${xTicks}
+      <text class="chart-axis-title chart-x-axis-title" x="${pad.left + innerW / 2}" y="${height - 4}" text-anchor="middle">${escapeHtml(options.xAxis || labelKey)}</text>
       <rect class="chart-hit" x="0" y="0" width="${width}" height="${height}" fill="transparent"></rect>
     </svg>
   `;
@@ -417,6 +438,15 @@ function cssTimeToMs(value, fallback) {
   const amount = Number(match[1]);
   if (!Number.isFinite(amount)) return fallback;
   return match[2] === "s" ? amount * 1000 : amount;
+}
+
+function formatTickLabel(label) {
+  const text = String(label || "");
+  const dateMatch = text.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (dateMatch) return `${dateMatch[2]}/${dateMatch[3]}`;
+  const hourMatch = text.match(/^(\d{4}-\d{2}-\d{2})[T ](\d{2}):/);
+  if (hourMatch) return `${hourMatch[2]}:00`;
+  return text.length > 10 ? `${text.slice(0, 9)}…` : text;
 }
 
 function showChartTooltip(event, id, row, getValue, labelKey, options = {}) {
