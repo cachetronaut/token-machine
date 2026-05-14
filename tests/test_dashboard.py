@@ -74,11 +74,45 @@ def test_fastapi_dashboard_routes_return_html_and_summary(tmp_path: Path) -> Non
     assert "rankings" not in html_response.text
     assert summary_response.status_code == 200
     payload = summary_response.json()
+    assert set(payload) >= {
+        "generated_at",
+        "summary",
+        "daily",
+        "hourly",
+        "model_profiles",
+        "recent_sessions",
+    }
+    assert set(payload["summary"]) >= {
+        "generated_at",
+        "event_count",
+        "sessions",
+        "sources",
+        "models",
+        "skill_calls",
+        "command_calls",
+        "tools",
+        "skills",
+        "executables",
+        "clis",
+        "event_types",
+        "tokens",
+        "descriptions",
+    }
+    assert set(payload["summary"]["tokens"]) >= {
+        "input_tokens",
+        "cached_input_tokens",
+        "cache_creation_input_tokens",
+        "output_tokens",
+        "reasoning_output_tokens",
+        "total_tokens",
+    }
     assert payload["summary"]["sessions"] == 1
     assert payload["summary"]["skill_calls"] == 1
     assert payload["summary"]["skills"] == {"frontend-design": 1}
     assert payload["summary"]["executables"] == {"Uv": 1}
     assert payload["summary"]["command_calls"] == 1
+    assert isinstance(payload["daily"], list)
+    assert isinstance(payload["hourly"], list)
     assert "rollup" in payload["recent_sessions"][0]
     assert payload["recent_sessions"][0]["rollup"]["skill_calls"] == 1
     assert payload["model_profiles"][0]["model"] == "gpt-5.4"

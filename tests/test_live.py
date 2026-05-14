@@ -909,8 +909,45 @@ def test_live_api_returns_snapshots_and_debug_reload(tmp_path: Path) -> None:
     reload_response = client.get("/api/debug/reload")
 
     assert live_response.status_code == 200
-    assert live_response.json()["active_count"] == 1
-    assert live_response.json()["snapshots"][0]["source"] == "codex"
+    live_payload = live_response.json()
+    assert set(live_payload) >= {
+        "generated_at",
+        "active_count",
+        "stale_count",
+        "snapshots",
+    }
+    assert live_payload["active_count"] == 1
+    assert set(live_payload["snapshots"][0]) >= {
+        "source",
+        "session_id",
+        "source_path",
+        "session_name",
+        "project_path",
+        "model",
+        "updated_at",
+        "observed_at",
+        "status",
+        "user_queries",
+        "context",
+        "current_metrics",
+        "live_tool_calls",
+        "live_actions",
+        "rate_limits",
+        "session_limits",
+        "compaction",
+        "token_usage",
+        "origin",
+        "error",
+    }
+    assert live_payload["snapshots"][0]["source"] == "codex"
+    assert set(live_payload["snapshots"][0]["token_usage"]) >= {
+        "input_tokens",
+        "cached_input_tokens",
+        "cache_creation_input_tokens",
+        "output_tokens",
+        "reasoning_output_tokens",
+        "total_tokens",
+    }
     assert reload_response.status_code == 200
     assert "reload_token" in reload_response.json()
     assert "css_reload_token" in reload_response.json()
