@@ -7,6 +7,7 @@ import {
   summaryPollMs,
 } from "./api.js";
 import { renderChart, renderModelDistribution } from "./charts.js";
+import { datasetValue, optionalElement, optionalQuery, queryAll } from "./dom.js";
 import { metric, text } from "./format.js";
 import { playIntro } from "./intro.js";
 import { renderLive, renderLiveError } from "./live.js";
@@ -33,6 +34,14 @@ let latestSummaryData: DashboardData | null = null;
 
 function isAbortError(error: unknown): boolean {
   return error instanceof DOMException && error.name === "AbortError";
+}
+
+function isChartId(value: string | null): value is ChartId {
+  return value === "daily-chart" || value === "hourly-chart";
+}
+
+function isChartModeFor(chartId: ChartId, value: string | null): value is ChartMode {
+  return Boolean(value && chartMetricConfig[chartId][value as ChartMode]);
 }
 
 const chartMetricConfig: Record<ChartId, Partial<Record<ChartMode, ChartMetricConfig>>> = {
@@ -79,7 +88,7 @@ const chartMetricConfig: Record<ChartId, Partial<Record<ChartMode, ChartMetricCo
 };
 
 function setStatusState(state: "connecting" | "live" | "disconnected") {
-  const status = document.querySelector(".status");
+  const status = optionalQuery<HTMLElement>(".status");
   if (!status) return;
   status.classList.remove("status-connecting", "status-live", "status-disconnected");
   status.classList.add(`status-${state}`);
@@ -87,7 +96,7 @@ function setStatusState(state: "connecting" | "live" | "disconnected") {
 
 async function refresh(signal?: AbortSignal) {
   try {
-    const data = await fetchSummary({ signal });
+    const data = await fetchSummary(signal ? { signal } : {});
     document.body.classList.remove("is-loading");
     setStatusState("live");
     latestSummaryData = data;
@@ -148,8 +157,8 @@ function renderMetricChart(
     subject: config.subject,
     xAxis: labelKey === "day" ? "day" : "hour",
   });
-  document.querySelectorAll<HTMLElement>(`[data-chart-mode="${id}"]`).forEach((button) => {
-    button.classList.toggle("active", button.dataset.chartValue === mode);
+  queryAll<HTMLElement>(`[data-chart-mode="${id}"]`).forEach((button) => {
+    button.classList.toggle("active", datasetValue(button, "chartValue") === mode);
     (button.closest(".ops-card") as HTMLElement | null)?.style.setProperty(
       "--ops-color",
       config.color,
@@ -173,7 +182,7 @@ function renderChangedMetricChart(id: ChartId) {
 
 async function refreshLive(signal?: AbortSignal) {
   try {
-    renderLive(await fetchLive({ signal }));
+    renderLive(await fetchLive(signal ? { signal } : {}));
   } catch (error) {
     if (isAbortError(error)) return;
     renderLiveError();
@@ -188,15 +197,15 @@ startDebugReloadPolling(() => {
   void refreshLive();
 });
 initSectionToggles();
-document.querySelectorAll<HTMLElement>("[data-chart-mode]").forEach((button) => {
+queryAll<HTMLElement>("[data-chart-mode]").forEach((button) => {
   button.addEventListener("click", () => {
-    const chartId = button.dataset.chartMode;
-    if (chartId !== "daily-chart" && chartId !== "hourly-chart") return;
-    if (chartModes[chartId] === button.dataset.chartValue) return;
-    const nextMode = button.dataset.chartValue as ChartMode | undefined;
-    if (!nextMode || !chartMetricConfig[chartId][nextMode]) return;
+    const chartId = datasetValue(button, "chartMode");
+    if (!isChartId(chartId)) return;
+    const nextMode = datasetValue(button, "chartValue");
+    if (chartModes[chartId] === nextMode) return;
+    if (!isChartModeFor(chartId, nextMode)) return;
     chartModes[chartId] = nextMode;
-    const chart = document.getElementById(chartId);
+    const chart = optionalElement(chartId);
     chart?.classList.add("chart-tab-switch");
     const card = chart?.closest(".ops-card");
     if (card) {

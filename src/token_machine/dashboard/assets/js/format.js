@@ -1,8 +1,7 @@
 export const fmt = new Intl.NumberFormat();
+import { optionalElement, setText } from "./dom.js";
 export function text(id, value) {
-    const element = document.getElementById(id);
-    if (element)
-        element.textContent = value;
+    setText(id, value);
 }
 export function compactNumber(value) {
     const number = Number(value || 0);
@@ -33,7 +32,7 @@ const reduceMotion = typeof window !== "undefined" && window.matchMedia
     ? window.matchMedia("(prefers-reduced-motion: reduce)").matches
     : false;
 export function metric(id, value) {
-    const element = document.getElementById(id);
+    const element = optionalElement(id);
     if (!element)
         return;
     const target = Number(value || 0);

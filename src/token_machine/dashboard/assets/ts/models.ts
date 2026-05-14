@@ -1,4 +1,5 @@
 import { appColor, modelColor, vizEmpty } from "./charts.js";
+import { optionalElement, setText } from "./dom.js";
 import { colorFor, compactNumber, escapeHtml, fmt, topEntries } from "./format.js";
 import {
   appDisplayName,
@@ -18,7 +19,7 @@ interface RenderBarsOptions {
 }
 
 export function renderBars(id: string, values: CountMap, options: RenderBarsOptions = {}) {
-  const root = document.getElementById(id);
+  const root = optionalElement(id);
   if (!root) return;
   const entries = topEntries(values);
   if (!entries.length) {
@@ -56,7 +57,7 @@ export function renderBars(id: string, values: CountMap, options: RenderBarsOpti
 }
 
 export function renderAppLegend(sources: CountMap) {
-  const root = document.getElementById("app-legend");
+  const root = optionalElement("app-legend");
   if (!root) return;
   const entries = Object.entries(sources || {}).sort((a, b) => b[1] - a[1]);
   root.innerHTML = entries
@@ -73,7 +74,7 @@ export function renderAppLegend(sources: CountMap) {
 }
 
 export function renderModelProfiles(rows: ModelProfile[]) {
-  const root = document.getElementById("model-profiles");
+  const root = optionalElement("model-profiles");
   if (!root) return;
   const visibleRows = rows.filter(
     (row) =>
@@ -165,12 +166,13 @@ function renderModelHero(row: ModelProfile) {
 
 function renderRankInsight(id: string | undefined, text: string) {
   if (!id) return;
-  const element = document.getElementById(id);
-  if (element) element.textContent = text;
+  setText(id, text);
 }
 
 function rankInsight(entries: [string, number][], options: RenderBarsOptions) {
-  const [[name, count]] = entries;
+  const leader = entries[0];
+  if (!leader) return `No ${options.noun || "activity"} calls yet.`;
+  const [name, count] = leader;
   const total = entries.reduce((sum, [, value]) => sum + value, 0);
   const share = total ? Math.round((count / total) * 100) : 0;
   return `${options.subject || "Local activity"} is led by ${name} with ${compactNumber(count)} ${options.noun || "actions"} calls (${share}% of top rows).`;

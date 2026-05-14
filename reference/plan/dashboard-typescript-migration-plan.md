@@ -197,6 +197,8 @@ If frontend types reveal an ambiguous backend shape, keep the Python payload unc
 
 ## Phase 4 - DOM and runtime hardening
 
+Status: completed in `harden dashboard dom types`.
+
 ### Implementation steps
 
 1. Add typed DOM helpers for required elements and optional elements.
@@ -291,8 +293,8 @@ Use separate commits for clear review gates:
 
 1. `add dashboard typescript build` - completed by `4f09363 migrate dashboard scripts to typescript`
 2. `migrate dashboard modules to typescript` - completed by `4f09363 migrate dashboard scripts to typescript`
-3. `type dashboard api contracts` - in progress
-4. `harden dashboard dom types`
+3. `type dashboard api contracts` - completed by `7b3cb8d type dashboard api contracts`
+4. `harden dashboard dom types` - completed by this phase commit
 5. `guard dashboard build output` - completed by `4f09363 migrate dashboard scripts to typescript`
 
 Each commit should pass its phase gate before the next commit starts.

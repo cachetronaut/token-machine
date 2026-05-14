@@ -1,4 +1,5 @@
 import { appColor, hideTooltip, showTooltip } from "./charts.js";
+import { datasetValue, optionalElement, queryAll } from "./dom.js";
 import {
   compactNumber,
   escapeHtml,
@@ -16,7 +17,7 @@ const knownSessions = new Set<string>();
 
 export function renderSessions(sessions: SessionProfile[]) {
   text("session-count", `${sessions.length} shown`);
-  const root = document.getElementById("recent-sessions");
+  const root = optionalElement("recent-sessions");
   if (!root) return;
   if (!sessions.length) {
     root.innerHTML = '<div class="viz-empty"><span>No sessions yet</span></div>';
@@ -76,8 +77,10 @@ export function renderSessions(sessions: SessionProfile[]) {
     })
     .join("");
   commitSessionKeys(sessions);
-  root.querySelectorAll<HTMLElement>(".timeline-card").forEach((card) => {
-    card.addEventListener("mousemove", (event) => showTooltip(event, card.dataset.tip || ""));
+  queryAll<HTMLElement>(".timeline-card", root).forEach((card) => {
+    card.addEventListener("mousemove", (event) =>
+      showTooltip(event, datasetValue(card, "tip") || ""),
+    );
     card.addEventListener("mouseleave", hideTooltip);
   });
 }

@@ -1,11 +1,12 @@
 import { appColor, hideTooltip, showTooltip } from "./charts.js";
+import { datasetValue, optionalElement, queryAll } from "./dom.js";
 import { compactNumber, escapeHtml, fmt, formatDuration, projectName, text, topEntries, } from "./format.js";
 import { appDisplayName, renderAppIcon } from "./icons.js";
 let sessionsPrimed = false;
 const knownSessions = new Set();
 export function renderSessions(sessions) {
     text("session-count", `${sessions.length} shown`);
-    const root = document.getElementById("recent-sessions");
+    const root = optionalElement("recent-sessions");
     if (!root)
         return;
     if (!sessions.length) {
@@ -63,8 +64,8 @@ export function renderSessions(sessions) {
     })
         .join("");
     commitSessionKeys(sessions);
-    root.querySelectorAll(".timeline-card").forEach((card) => {
-        card.addEventListener("mousemove", (event) => showTooltip(event, card.dataset.tip || ""));
+    queryAll(".timeline-card", root).forEach((card) => {
+        card.addEventListener("mousemove", (event) => showTooltip(event, datasetValue(card, "tip") || ""));
         card.addEventListener("mouseleave", hideTooltip);
     });
 }

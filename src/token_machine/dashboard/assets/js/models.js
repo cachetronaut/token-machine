@@ -1,8 +1,9 @@
 import { appColor, modelColor, vizEmpty } from "./charts.js";
+import { optionalElement, setText } from "./dom.js";
 import { colorFor, compactNumber, escapeHtml, fmt, topEntries } from "./format.js";
 import { appDisplayName, iconClassName, iconUrl, renderAppIcon, renderModelIcon, sourceIconName, } from "./icons.js";
 export function renderBars(id, values, options = {}) {
-    const root = document.getElementById(id);
+    const root = optionalElement(id);
     if (!root)
         return;
     const entries = topEntries(values);
@@ -40,7 +41,7 @@ export function renderBars(id, values, options = {}) {
     renderRankInsight(options.insightId, rankInsight(entries, options));
 }
 export function renderAppLegend(sources) {
-    const root = document.getElementById("app-legend");
+    const root = optionalElement("app-legend");
     if (!root)
         return;
     const entries = Object.entries(sources || {}).sort((a, b) => b[1] - a[1]);
@@ -57,7 +58,7 @@ export function renderAppLegend(sources) {
         .join("");
 }
 export function renderModelProfiles(rows) {
-    const root = document.getElementById("model-profiles");
+    const root = optionalElement("model-profiles");
     if (!root)
         return;
     const visibleRows = rows.filter((row) => row.model !== "unknown" &&
@@ -145,12 +146,13 @@ function renderModelHero(row) {
 function renderRankInsight(id, text) {
     if (!id)
         return;
-    const element = document.getElementById(id);
-    if (element)
-        element.textContent = text;
+    setText(id, text);
 }
 function rankInsight(entries, options) {
-    const [[name, count]] = entries;
+    const leader = entries[0];
+    if (!leader)
+        return `No ${options.noun || "activity"} calls yet.`;
+    const [name, count] = leader;
     const total = entries.reduce((sum, [, value]) => sum + value, 0);
     const share = total ? Math.round((count / total) * 100) : 0;
     return `${options.subject || "Local activity"} is led by ${name} with ${compactNumber(count)} ${options.noun || "actions"} calls (${share}% of top rows).`;

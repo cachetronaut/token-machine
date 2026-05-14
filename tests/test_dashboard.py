@@ -251,6 +251,7 @@ def test_dashboard_typescript_sources_back_packaged_javascript() -> None:
         "api",
         "charts",
         "dashboard",
+        "dom",
         "format",
         "icons",
         "intro",

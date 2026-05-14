@@ -1,10 +1,11 @@
 import { replayDonutAnimation } from "./charts.js";
+import { datasetValue, optionalElement, queryAll } from "./dom.js";
 export function initSectionToggles() {
-    document.querySelectorAll("[data-section-toggle]").forEach((toggle) => {
-        const sectionId = toggle.getAttribute("data-section-toggle");
+    queryAll("[data-section-toggle]").forEach((toggle) => {
+        const sectionId = datasetValue(toggle, "sectionToggle");
         if (!sectionId)
             return;
-        const section = document.getElementById(sectionId);
+        const section = optionalElement(sectionId);
         if (!section)
             return;
         const applyState = (open, replay = false) => {

@@ -1,5 +1,6 @@
 import { fetchLive, fetchSummary, livePollMs, startDebugReloadPolling, startPolling, summaryPollMs, } from "./api.js";
 import { renderChart, renderModelDistribution } from "./charts.js";
+import { datasetValue, optionalElement, optionalQuery, queryAll } from "./dom.js";
 import { metric, text } from "./format.js";
 import { playIntro } from "./intro.js";
 import { renderLive, renderLiveError } from "./live.js";
@@ -13,6 +14,12 @@ const chartModes = {
 let latestSummaryData = null;
 function isAbortError(error) {
     return error instanceof DOMException && error.name === "AbortError";
+}
+function isChartId(value) {
+    return value === "daily-chart" || value === "hourly-chart";
+}
+function isChartModeFor(chartId, value) {
+    return Boolean(value && chartMetricConfig[chartId][value]);
 }
 const chartMetricConfig = {
     "daily-chart": {
@@ -57,7 +64,7 @@ const chartMetricConfig = {
     },
 };
 function setStatusState(state) {
-    const status = document.querySelector(".status");
+    const status = optionalQuery(".status");
     if (!status)
         return;
     status.classList.remove("status-connecting", "status-live", "status-disconnected");
@@ -65,7 +72,7 @@ function setStatusState(state) {
 }
 async function refresh(signal) {
     try {
-        const data = await fetchSummary({ signal });
+        const data = await fetchSummary(signal ? { signal } : {});
         document.body.classList.remove("is-loading");
         setStatusState("live");
         latestSummaryData = data;
@@ -123,8 +130,8 @@ function renderMetricChart(id, points, labelKey, insightId) {
         subject: config.subject,
         xAxis: labelKey === "day" ? "day" : "hour",
     });
-    document.querySelectorAll(`[data-chart-mode="${id}"]`).forEach((button) => {
-        button.classList.toggle("active", button.dataset.chartValue === mode);
+    queryAll(`[data-chart-mode="${id}"]`).forEach((button) => {
+        button.classList.toggle("active", datasetValue(button, "chartValue") === mode);
         button.closest(".ops-card")?.style.setProperty("--ops-color", config.color);
     });
 }
@@ -143,7 +150,7 @@ function renderChangedMetricChart(id) {
 }
 async function refreshLive(signal) {
     try {
-        renderLive(await fetchLive({ signal }));
+        renderLive(await fetchLive(signal ? { signal } : {}));
     }
     catch (error) {
         if (isAbortError(error))
@@ -159,18 +166,18 @@ startDebugReloadPolling(() => {
     void refreshLive();
 });
 initSectionToggles();
-document.querySelectorAll("[data-chart-mode]").forEach((button) => {
+queryAll("[data-chart-mode]").forEach((button) => {
     button.addEventListener("click", () => {
-        const chartId = button.dataset.chartMode;
-        if (chartId !== "daily-chart" && chartId !== "hourly-chart")
+        const chartId = datasetValue(button, "chartMode");
+        if (!isChartId(chartId))
             return;
-        if (chartModes[chartId] === button.dataset.chartValue)
+        const nextMode = datasetValue(button, "chartValue");
+        if (chartModes[chartId] === nextMode)
             return;
-        const nextMode = button.dataset.chartValue;
-        if (!nextMode || !chartMetricConfig[chartId][nextMode])
+        if (!isChartModeFor(chartId, nextMode))
             return;
         chartModes[chartId] = nextMode;
-        const chart = document.getElementById(chartId);
+        const chart = optionalElement(chartId);
         chart?.classList.add("chart-tab-switch");
         const card = chart?.closest(".ops-card");
         if (card) {

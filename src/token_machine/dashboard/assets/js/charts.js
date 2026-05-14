@@ -1,3 +1,4 @@
+import { datasetValue, optionalElement, setText } from "./dom.js";
 import { compactNumber, escapeHtml, fmt } from "./format.js";
 const modelColors = {
     "gpt-5.5": "#0169cc",
@@ -25,26 +26,26 @@ const chartMotionFrames = new WeakMap();
 let chartMotionBatchStart = 0;
 let chartMotionBatchExpires = 0;
 export function appColor(source) {
-    return appColors[String(source || "").toLowerCase()] || appColors.unknown;
+    return appColors[String(source || "").toLowerCase()] ?? appColors.unknown ?? "#b1ada1";
 }
 export function modelColor(model) {
     const key = String(model || "").toLowerCase();
     if (modelColors[key])
-        return modelColors[key];
+        return modelColors[key] ?? "#43c7b7";
     if (key.includes("claude"))
-        return appColors.claudecode;
+        return appColors.claudecode ?? "#d97757";
     if (key.includes("gemini"))
-        return appColors.gemini;
+        return appColors.gemini ?? "#8ab4f8";
     if (key.includes("opencode"))
-        return appColors.opencode;
+        return appColors.opencode ?? "#f5f7fa";
     if (key.includes("openrouter"))
         return "#f5f7fa";
     if (key.includes("gpt") || key.includes("openai"))
-        return appColors.openai;
+        return appColors.openai ?? "#0169cc";
     return "#43c7b7";
 }
 export function showTooltip(event, html) {
-    const tooltip = document.getElementById("tooltip");
+    const tooltip = optionalElement("tooltip");
     if (!tooltip)
         return;
     tooltip.innerHTML = html;
@@ -53,7 +54,7 @@ export function showTooltip(event, html) {
     tooltip.style.opacity = "1";
 }
 export function hideTooltip() {
-    const tooltip = document.getElementById("tooltip");
+    const tooltip = optionalElement("tooltip");
     if (tooltip)
         tooltip.style.opacity = "0";
 }
@@ -63,8 +64,8 @@ export function renderModelDistribution(values) {
         .sort((a, b) => b[1] - a[1])
         .slice(0, 8);
     const total = entries.reduce((sum, [, count]) => sum + count, 0);
-    const donut = document.getElementById("models-donut");
-    const legend = document.getElementById("models");
+    const donut = optionalElement("models-donut");
+    const legend = optionalElement("models");
     if (!donut || !legend)
         return;
     if (!entries.length || !total) {
@@ -86,13 +87,17 @@ export function renderModelDistribution(values) {
         const end = cursor;
         segments.push({ name, count, start, end, provider: providerForModel(name) });
     });
-    const leaderColor = modelColor(entries[0][0]);
-    const leaderCount = entries[0][1];
+    const leaderEntry = entries[0];
+    if (!leaderEntry)
+        return;
+    const leaderName = leaderEntry[0] ?? "";
+    const leaderCount = leaderEntry[1] ?? 0;
+    const leaderColor = modelColor(leaderName);
     donut.style.setProperty("--chart-color", leaderColor);
     donut.innerHTML = `
     <div class="donut-aura" aria-hidden="true"></div>
     ${donutSvg(segments)}
-    <div class="donut-total"><div><strong>${compactNumber(total)}</strong><span>calls</span><span class="donut-leader-tag"><span class="donut-leader-text">${escapeHtml(providerForModel(entries[0][0]))} lead</span></span></div></div>
+    <div class="donut-total"><div><strong>${compactNumber(total)}</strong><span>calls</span><span class="donut-leader-tag"><span class="donut-leader-text">${escapeHtml(providerForModel(leaderName))} lead</span></span></div></div>
   `;
     replayDonutAnimation(donut);
     const segmentNodes = donut.querySelectorAll(".donut-segment");
@@ -115,10 +120,10 @@ export function renderModelDistribution(values) {
     const setActive = (name) => {
         donut.classList.toggle("has-hover", Boolean(name));
         segmentNodes.forEach((node) => {
-            node.classList.toggle("is-active", node.dataset.model === name);
+            node.classList.toggle("is-active", datasetValue(node, "model") === name);
         });
         rowNodes.forEach((node) => {
-            node.classList.toggle("is-active", node.dataset.model === name);
+            node.classList.toggle("is-active", datasetValue(node, "model") === name);
         });
     };
     const tooltipFor = (segment, event) => {
@@ -147,6 +152,8 @@ export function renderModelDistribution(values) {
             degrees += 360;
         const percent = (degrees / 360) * 100;
         const segment = segments.find((item) => percent >= item.start && percent <= item.end) || segments[0];
+        if (!segment)
+            return;
         setActive(segment.name);
         tooltipFor(segment, event);
     };
@@ -156,14 +163,14 @@ export function renderModelDistribution(values) {
     };
     rowNodes.forEach((row) => {
         row.addEventListener("mouseenter", (event) => {
-            const segment = segments.find((s) => s.name === row.dataset.model);
+            const segment = segments.find((s) => s.name === datasetValue(row, "model"));
             if (!segment)
                 return;
             setActive(segment.name);
             tooltipFor(segment, event);
         });
         row.addEventListener("mousemove", (event) => {
-            const segment = segments.find((s) => s.name === row.dataset.model);
+            const segment = segments.find((s) => s.name === datasetValue(row, "model"));
             if (segment)
                 tooltipFor(segment, event);
         });
@@ -211,7 +218,7 @@ function donutSvg(segments) {
   `;
 }
 export function replayDonutAnimation(root) {
-    const donut = root || document.getElementById("models-donut");
+    const donut = root || optionalElement("models-donut");
     if (!donut)
         return;
     donut.classList.remove("donut-animate-in");
@@ -271,7 +278,7 @@ function polarPoint(cx, cy, radius, angle) {
     };
 }
 export function renderChart(id, points, getValue, lineColor, fillColor, labelKey, options = {}) {
-    const root = document.getElementById(id);
+    const root = optionalElement(id);
     if (!root)
         return;
     root.style.setProperty("--chart-color", lineColor);
@@ -294,7 +301,9 @@ export function renderChart(id, points, getValue, lineColor, fillColor, labelKey
             dots.forEach((dot, i) => {
                 dot.classList.toggle("is-active", i === index);
             });
-            showChartTooltip(event, id, points[index], getValue, labelKey, options);
+            const point = points[index];
+            if (point)
+                showChartTooltip(event, id, point, getValue, labelKey, options);
         });
         hit.addEventListener("mouseleave", () => {
             dots.forEach((dot) => {
@@ -354,7 +363,10 @@ function chartSvg(id, points, getValue, lineColor, _fillColor, labelKey, options
         return true;
     })
         .map((i) => {
-        const x = xy[i][0];
+        const point = xy[i];
+        if (!point)
+            return "";
+        const x = point[0];
         const label = points[i]?.[labelKey] || "";
         const anchor = i === 0 ? "start" : i === points.length - 1 ? "end" : "middle";
         return `
@@ -419,7 +431,10 @@ function chartOverlay(meta, points) {
         return `<span class="chart-bead" data-index="${index}" style="left:${leftPct}%; top:${topPct}%"></span>`;
     })
         .join("");
-    const [hx, hy] = xy[0];
+    const firstPoint = xy[0];
+    if (!firstPoint)
+        return "";
+    const [hx, hy] = firstPoint;
     const headLeft = ((hx / viewW) * 100).toFixed(3);
     const headTop = ((hy / viewH) * 100).toFixed(3);
     const initialValue = compactNumber(values[0] || 0);
@@ -463,8 +478,12 @@ function animateSignalChart(root) {
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const update = (progress) => {
         const point = pointAtProgress(points, progress);
-        const firstX = points[0].x;
-        const lastX = points[points.length - 1].x;
+        const first = points[0];
+        const last = points[points.length - 1];
+        if (!first || !last)
+            return;
+        const firstX = first.x;
+        const lastX = last.x;
         const visibleWidth = Math.max(0, point.x - firstX + 2);
         const finalWidth = Math.max(0, lastX - firstX + 2);
         clip.setAttribute("width", `${(progress >= 1 ? finalWidth : visibleWidth).toFixed(2)}`);
@@ -487,9 +506,11 @@ function animateSignalChart(root) {
             const fractional = progress * (values.length - 1);
             const idx = Math.floor(fractional);
             const t = fractional - idx;
+            const currentValue = values[idx] ?? 0;
+            const nextValue = values[idx + 1] ?? currentValue;
             const v = idx >= values.length - 1
-                ? values[values.length - 1]
-                : values[idx] + (values[idx + 1] - values[idx]) * t;
+                ? (values[values.length - 1] ?? 0)
+                : currentValue + (nextValue - currentValue) * t;
             valueText.textContent = compactNumber(Math.max(0, v));
         }
     };
@@ -526,23 +547,32 @@ function parsePolylinePoints(points) {
         .trim()
         .split(/\s+/)
         .filter(Boolean)
-        .map((pair) => {
-        const [x, y] = pair.split(",").map(Number);
-        return { x, y };
-    })
-        .filter((point) => Number.isFinite(point.x) && Number.isFinite(point.y));
+        .flatMap((pair) => {
+        const values = pair.split(",").map(Number);
+        const x = values[0];
+        const y = values[1];
+        if (!Number.isFinite(x) || !Number.isFinite(y))
+            return [];
+        return { x: Number(x), y: Number(y) };
+    });
 }
 function pointAtProgress(points, progress) {
+    const first = points[0];
+    if (!first)
+        return { x: 0, y: 0 };
     if (points.length === 1)
-        return points[0];
-    const firstX = points[0].x;
-    const lastX = points[points.length - 1].x;
+        return first;
+    const last = points[points.length - 1] || first;
+    const firstX = first.x;
+    const lastX = last.x;
     const x = firstX + (lastX - firstX) * progress;
     const nextIndex = points.findIndex((point) => point.x >= x);
     if (nextIndex <= 0)
-        return points[0];
+        return first;
     const next = points[nextIndex];
     const previous = points[nextIndex - 1];
+    if (!next || !previous)
+        return last;
     const span = Math.max(next.x - previous.x, 1);
     const localProgress = Math.max(0, Math.min(1, (x - previous.x) / span));
     return {
@@ -586,16 +616,17 @@ function chartInsight(points, getValue, options) {
     const total = entries.reduce((sum, item) => sum + item.value, 0);
     if (!total)
         return options.emptyInsight || "No local agent activity in this window.";
-    const peak = entries.reduce((best, item) => (item.value > best.value ? item : best), entries[0]);
+    const first = entries[0];
+    if (!first)
+        return options.emptyInsight || "No local agent activity in this window.";
+    const peak = entries.reduce((best, item) => (item.value > best.value ? item : best), first);
     const labelKey = options.labelKey === "hour" ? "hour" : "day";
     const label = peak.point?.[labelKey] || "window";
     const unit = options.unit || "events";
     return `${options.subject || "Local agents"} peaked at ${compactNumber(peak.value)} ${unit} on ${escapeHtml(label)}.`;
 }
 function setInsight(id, text) {
-    const element = document.getElementById(id);
-    if (element)
-        element.textContent = text;
+    setText(id, text);
 }
 function providerForModel(model) {
     const key = String(model || "").toLowerCase();

@@ -1,4 +1,5 @@
 import { appColor } from "./charts.js";
+import { optionalElement, setText as setElementText } from "./dom.js";
 import { compactNumber, escapeHtml, fmt, projectName } from "./format.js";
 import { appDisplayName, renderAppIcon } from "./icons.js";
 let liveDisclosureReady = false;
@@ -6,7 +7,7 @@ let liveToolsPrimed = false;
 const knownLiveTools = new Set();
 export function renderLive(data) {
     ensureLiveDisclosure();
-    const lanesRoot = document.getElementById("live-lanes");
+    const lanesRoot = optionalElement("live-lanes");
     const snapshots = (data.snapshots || []).slice().sort(compareSnapshots);
     const activeSnapshots = snapshots.filter((snapshot) => snapshot.status === "active");
     const totals = summarize(snapshots);
@@ -33,10 +34,10 @@ export function renderLiveError() {
     setText("live-agents", "0");
     setText("live-tokens", "0");
     setText("live-subline", "Live probe disconnected");
-    const led = document.getElementById("live-led");
+    const led = optionalElement("live-led");
     if (led)
         led.className = "live-led live-led-error";
-    const lanesRoot = document.getElementById("live-lanes");
+    const lanesRoot = optionalElement("live-lanes");
     if (!lanesRoot)
         return;
     lanesRoot.innerHTML = '<div class="live-empty">Live endpoint unavailable</div>';
@@ -50,7 +51,7 @@ function summarize(snapshots) {
     }), { queries: 0, tools: 0, subagents: 0, tokens: 0 });
 }
 function setStatusLine(data, activeSnapshots, snapshots) {
-    const led = document.getElementById("live-led");
+    const led = optionalElement("live-led");
     if (led) {
         led.className = `live-led ${activeSnapshots.length ? "" : "live-led-idle"}`.trim();
     }
@@ -184,7 +185,7 @@ function renderTools(tools, snapshot) {
         const kindClass = ["tool", "skill", "command"].includes(kind)
             ? ` live-tool-${kind}`
             : " live-tool-tool";
-        const key = toolKeys[index];
+        const key = toolKeys[index] || "";
         const newClass = liveToolsPrimed && !knownLiveTools.has(key) ? " live-tool-new" : "";
         const currentClass = index === 0 ? " live-tool-current" : "";
         return `
@@ -329,8 +330,8 @@ function updateLanes(root, html, signature) {
 function ensureLiveDisclosure() {
     if (liveDisclosureReady)
         return;
-    const consoleRoot = document.getElementById("live-console");
-    const toggle = document.getElementById("live-toggle");
+    const consoleRoot = optionalElement("live-console");
+    const toggle = optionalElement("live-toggle");
     if (!consoleRoot || !toggle)
         return;
     liveDisclosureReady = true;
@@ -433,7 +434,5 @@ function timestamp(snapshot) {
     return Number.isNaN(value) ? 0 : value;
 }
 function setText(id, value) {
-    const element = document.getElementById(id);
-    if (element)
-        element.textContent = String(value);
+    setElementText(id, value);
 }

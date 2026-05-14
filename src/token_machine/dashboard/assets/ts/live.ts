@@ -1,4 +1,5 @@
 import { appColor } from "./charts.js";
+import { optionalElement, setText as setElementText } from "./dom.js";
 import { compactNumber, escapeHtml, fmt, projectName } from "./format.js";
 import { appDisplayName, renderAppIcon } from "./icons.js";
 import type {
@@ -32,7 +33,7 @@ type LiveActionKind = "tool" | "skill" | "command";
 
 export function renderLive(data: LiveData) {
   ensureLiveDisclosure();
-  const lanesRoot = document.getElementById("live-lanes");
+  const lanesRoot = optionalElement("live-lanes");
   const snapshots = (data.snapshots || []).slice().sort(compareSnapshots);
   const activeSnapshots = snapshots.filter((snapshot) => snapshot.status === "active");
   const totals = summarize(snapshots);
@@ -63,9 +64,9 @@ export function renderLiveError() {
   setText("live-agents", "0");
   setText("live-tokens", "0");
   setText("live-subline", "Live probe disconnected");
-  const led = document.getElementById("live-led");
+  const led = optionalElement("live-led");
   if (led) led.className = "live-led live-led-error";
-  const lanesRoot = document.getElementById("live-lanes");
+  const lanesRoot = optionalElement("live-lanes");
   if (!lanesRoot) return;
   lanesRoot.innerHTML = '<div class="live-empty">Live endpoint unavailable</div>';
 }
@@ -87,7 +88,7 @@ function setStatusLine(
   activeSnapshots: LiveUsageSnapshot[],
   snapshots: LiveUsageSnapshot[],
 ) {
-  const led = document.getElementById("live-led");
+  const led = optionalElement("live-led");
   if (led) {
     led.className = `live-led ${activeSnapshots.length ? "" : "live-led-idle"}`.trim();
   }
@@ -220,7 +221,7 @@ function renderTools(tools: LiveToolCall[], snapshot: LiveUsageSnapshot) {
           const kindClass = ["tool", "skill", "command"].includes(kind)
             ? ` live-tool-${kind}`
             : " live-tool-tool";
-          const key = toolKeys[index];
+          const key = toolKeys[index] || "";
           const newClass = liveToolsPrimed && !knownLiveTools.has(key) ? " live-tool-new" : "";
           const currentClass = index === 0 ? " live-tool-current" : "";
           return `
@@ -365,8 +366,8 @@ function updateLanes(root: HTMLElement | null, html: string, signature: string) 
 
 function ensureLiveDisclosure() {
   if (liveDisclosureReady) return;
-  const consoleRoot = document.getElementById("live-console");
-  const toggle = document.getElementById("live-toggle");
+  const consoleRoot = optionalElement("live-console");
+  const toggle = optionalElement("live-toggle");
   if (!consoleRoot || !toggle) return;
   liveDisclosureReady = true;
   toggle.addEventListener("click", () => {
@@ -485,6 +486,5 @@ function timestamp(snapshot: LiveUsageSnapshot) {
 }
 
 function setText(id: string, value: string | number) {
-  const element = document.getElementById(id);
-  if (element) element.textContent = String(value);
+  setElementText(id, value);
 }

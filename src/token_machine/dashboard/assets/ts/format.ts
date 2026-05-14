@@ -1,10 +1,10 @@
 export const fmt = new Intl.NumberFormat();
 
+import { optionalElement, setText } from "./dom.js";
 import type { CountMap } from "./types.js";
 
 export function text(id: string, value: string) {
-  const element = document.getElementById(id);
-  if (element) element.textContent = value;
+  setText(id, value);
 }
 
 export function compactNumber(value: number | string | null | undefined) {
@@ -33,7 +33,7 @@ const reduceMotion =
     : false;
 
 export function metric(id: string, value: number | string | null | undefined) {
-  const element = document.getElementById(id);
+  const element = optionalElement(id);
   if (!element) return;
   const target = Number(value || 0);
   element.title = fmt.format(target);
