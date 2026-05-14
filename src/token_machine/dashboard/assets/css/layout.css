@@ -158,9 +158,42 @@ header .brand-wordmark {
     margin-bottom: 12px;
 }
 
+.metric {
+    padding-left: 18px;
+}
+
+.metric .label {
+    position: relative;
+    padding-left: 12px;
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+}
+
+.metric .label::before {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--metric-color, var(--teal));
+    box-shadow: 0 0 10px color-mix(in srgb, var(--metric-color, var(--teal)), transparent 40%);
+    content: "";
+    transform: translateY(-50%);
+}
+
 .metric .value {
-    margin-top: 8px;
+    margin-top: 10px;
     overflow-wrap: anywhere;
+    background: linear-gradient(135deg, var(--text) 0%, color-mix(in srgb, var(--metric-color, var(--teal)), white 18%) 100%);
+    -webkit-background-clip: text;
+            background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
     font-family: var(--font-mono);
     font-size: 25px;
     font-weight: 760;
@@ -168,38 +201,85 @@ header .brand-wordmark {
     transform-origin: left center;
 }
 
-.metric::after {
+.metric::before {
     position: absolute;
     top: 0;
-    right: 14px;
-    left: 14px;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, currentColor, transparent);
+    left: 0;
+    bottom: 0;
+    width: 3px;
+    border-top-left-radius: 8px;
+    border-bottom-left-radius: 8px;
+    background: linear-gradient(180deg,
+        var(--metric-color, var(--teal)) 0%,
+        color-mix(in srgb, var(--metric-color, var(--teal)), transparent 28%) 30%,
+        color-mix(in srgb, var(--metric-color, var(--teal)), transparent 78%) 100%);
+    box-shadow:
+        0 0 12px color-mix(in srgb, var(--metric-color, var(--teal)), transparent 55%),
+        0 0 22px color-mix(in srgb, var(--metric-color, var(--teal)), transparent 75%);
     content: "";
-    opacity: .32;
     pointer-events: none;
 }
 
-.metric-value-refresh {
-    animation: metric-flip .72s ease-out;
+.metric::after {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 26%;
+    height: 3px;
+    border-top-left-radius: 8px;
+    background: linear-gradient(90deg,
+        var(--metric-color, var(--teal)) 0%,
+        color-mix(in srgb, var(--metric-color, var(--teal)), transparent 40%) 38%,
+        color-mix(in srgb, var(--metric-color, var(--teal)), transparent 92%) 88%,
+        transparent 100%);
+    box-shadow: 0 6px 16px -4px color-mix(in srgb, var(--metric-color, var(--teal)), transparent 60%);
+    content: "";
+    pointer-events: none;
+    animation: metric-edge-breathe 4.8s ease-in-out infinite;
+}
+
+@keyframes metric-edge-breathe {
+    0%, 100% { opacity: .82; }
+    50% { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .metric::after { animation: none; }
+}
+
+.metric-value-refresh,
+.metric-value-tick {
+    animation: metric-tick-land .52s cubic-bezier(.2, .8, .2, 1);
+}
+
+@keyframes metric-tick-land {
+    0% {
+        text-shadow: 0 0 14px color-mix(in srgb, var(--metric-color, var(--teal)), transparent 30%);
+        transform: translateY(-1px);
+    }
+    100% {
+        text-shadow: none;
+        transform: translateY(0);
+    }
 }
 
 .metric .value[data-ready="false"] {
+    -webkit-text-fill-color: color-mix(in srgb, var(--text), transparent 38%);
     color: color-mix(in srgb, var(--text), transparent 38%);
     animation: metric-breathe 1.6s ease-in-out infinite;
 }
 
 .metric:nth-child(1) {
-    border-top: 3px solid var(--teal);
+    --metric-color: var(--c-sessions);
 }
 .metric:nth-child(2) {
-    border-top: 3px solid var(--amber);
+    --metric-color: var(--c-events);
 }
 .metric:nth-child(3) {
-    border-top: 3px solid var(--coral);
+    --metric-color: var(--c-model);
 }
 .metric:nth-child(4) {
-    border-top: 3px solid var(--blue);
+    --metric-color: var(--c-tokens);
 }
 
 .charts {
@@ -539,9 +619,9 @@ header .brand-wordmark {
     gap: 12px;
 }
 
-.rank-tools { --ops-color: var(--teal); }
-.rank-skills { --ops-color: var(--green); }
-.rank-executables { --ops-color: var(--coral); }
+.rank-tools { --ops-color: var(--c-tools); }
+.rank-skills { --ops-color: var(--c-skills); }
+.rank-executables { --ops-color: var(--c-commands); }
 
 .bar-row {
     display: grid;
@@ -851,8 +931,7 @@ header .brand-wordmark {
     }
 
     .charts,
-    .rank-grid,
-    .legend-grid {
+    .rank-grid {
         grid-template-columns: 1fr;
     }
 

@@ -86,7 +86,7 @@ export function renderModelDistribution(values) {
   donut.innerHTML = `
     <div class="donut-aura" aria-hidden="true"></div>
     ${donutSvg(segments)}
-    <div class="donut-total"><div><strong>${compactNumber(total)}</strong><span>calls</span><span class="donut-leader-tag" style="--leader-color:${leaderColor}">${escapeHtml(providerForModel(entries[0][0]))} lead</span></div></div>
+    <div class="donut-total"><div><strong>${compactNumber(total)}</strong><span>calls</span><span class="donut-leader-tag"><span class="donut-leader-text">${escapeHtml(providerForModel(entries[0][0]))} lead</span></span></div></div>
   `;
   replayDonutAnimation(donut);
   donut.onmousemove = (event) => {
@@ -101,13 +101,19 @@ export function renderModelDistribution(values) {
     showTooltip(event, `<strong>${escapeHtml(segment.name)}</strong>${escapeHtml(segment.provider)}<br>${fmt.format(segment.count)} calls<br>${share.toFixed(1)}% of model calls`);
   };
   donut.onmouseleave = hideTooltip;
-  legend.innerHTML = entries.map(([name, count]) => `
-    <div class="legend-item" title="${escapeHtml(name)}: ${fmt.format(count)} calls">
-      <span class="legend-dot" style="background:${modelColor(name)}"></span>
-      <span class="legend-name">${escapeHtml(name)}</span>
-      <span>${compactNumber(count)}</span>
+  legend.innerHTML = entries.map(([name, count], index) => {
+    const share = total ? (count / total) * 100 : 0;
+    const leader = index === 0 ? " dist-row-leader" : "";
+    const color = modelColor(name);
+    return `
+    <div class="dist-row${leader}" style="--row-color:${color}; --share:${share.toFixed(1)}%" title="${escapeHtml(name)}: ${fmt.format(count)} calls">
+      <span class="dist-rank">${String(index + 1).padStart(2, "0")}</span>
+      <span class="dist-name">${escapeHtml(name)}</span>
+      <span class="dist-value">${compactNumber(count)}<span class="dist-share">${share.toFixed(1)}%</span></span>
+      <span class="dist-track"><span class="dist-fill"></span></span>
     </div>
-  `).join("");
+  `;
+  }).join("");
   setInsight("models-insight", `${providerForModel(entries[0][0])} leads model usage with ${compactNumber(entries[0][1])} model calls.`);
 }
 
@@ -125,9 +131,30 @@ function donutSvg(segments) {
       ></path>
     `;
   }).join("");
+  const overlay = `<path class="donut-depth" d="${donutSlicePath(0, 99.999, outerRadius, innerRadius)}" fill="url(#donut-depth-grad)"></path>`;
   return `
     <svg class="donut-svg" viewBox="0 0 200 200" aria-hidden="true">
-      ${slices}
+      <defs>
+        <radialGradient id="donut-depth-grad" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="rgba(0,0,0,0)"/>
+          <stop offset="46%" stop-color="rgba(0,0,0,0.35)"/>
+          <stop offset="60%" stop-color="rgba(0,0,0,0.12)"/>
+          <stop offset="78%" stop-color="rgba(255,255,255,0.02)"/>
+          <stop offset="92%" stop-color="rgba(255,255,255,0.22)"/>
+          <stop offset="100%" stop-color="rgba(255,255,255,0)"/>
+        </radialGradient>
+        <filter id="donut-glow" x="-20%" y="-20%" width="140%" height="140%">
+          <feGaussianBlur stdDeviation="2.4" result="blur"/>
+          <feMerge>
+            <feMergeNode in="blur"/>
+            <feMergeNode in="SourceGraphic"/>
+          </feMerge>
+        </filter>
+      </defs>
+      <g class="donut-segments" filter="url(#donut-glow)">
+        ${slices}
+      </g>
+      ${overlay}
     </svg>
   `;
 }

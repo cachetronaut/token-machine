@@ -23,17 +23,46 @@ export function formatDuration(seconds) {
   return minutes ? `${hours}h ${minutes}m` : `${hours}h`;
 }
 
+const METRIC_TICK_DURATION = 880;
+const reduceMotion = typeof window !== "undefined" && window.matchMedia
+  ? window.matchMedia("(prefers-reduced-motion: reduce)").matches
+  : false;
+
 export function metric(id, value) {
   const element = document.getElementById(id);
-  const nextValue = compactNumber(value);
-  if (element.dataset.ready === "true" && element.textContent !== nextValue) {
-    element.classList.remove("metric-value-refresh");
-    void element.offsetWidth;
-    element.classList.add("metric-value-refresh");
+  if (!element) return;
+  const target = Number(value || 0);
+  element.title = fmt.format(target);
+  const initial = element.dataset.ready !== "true";
+  const previous = Number.isFinite(element.__metricValue) ? element.__metricValue : (initial ? 0 : target);
+  element.__metricValue = target;
+  if (initial || reduceMotion || previous === target) {
+    if (element.__metricRaf) cancelAnimationFrame(element.__metricRaf);
+    element.__metricRaf = null;
+    element.textContent = compactNumber(target);
+    element.dataset.ready = "true";
+    return;
   }
-  element.textContent = nextValue;
   element.dataset.ready = "true";
-  element.title = fmt.format(value || 0);
+  if (element.__metricRaf) cancelAnimationFrame(element.__metricRaf);
+  const start = performance.now();
+  const delta = target - previous;
+  const tick = (now) => {
+    const t = Math.min(1, (now - start) / METRIC_TICK_DURATION);
+    const eased = 1 - Math.pow(1 - t, 4);
+    const current = previous + delta * eased;
+    element.textContent = compactNumber(current);
+    if (t < 1) {
+      element.__metricRaf = requestAnimationFrame(tick);
+    } else {
+      element.__metricRaf = null;
+      element.textContent = compactNumber(target);
+      element.classList.remove("metric-value-tick");
+      void element.offsetWidth;
+      element.classList.add("metric-value-tick");
+    }
+  };
+  element.__metricRaf = requestAnimationFrame(tick);
 }
 
 export function escapeHtml(value) {

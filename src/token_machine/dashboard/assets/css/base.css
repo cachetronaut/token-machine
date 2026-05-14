@@ -62,6 +62,16 @@
   --amber: #f6c453;
   --coral: #ff7f6e;
   --blue: #6ba6ff;
+  --violet: #c597ff;
+  --sky: #9bc2ff;
+  --c-tokens: var(--teal);
+  --c-events: var(--amber);
+  --c-sessions: var(--blue);
+  --c-model: var(--violet);
+  --c-tools: var(--green);
+  --c-skills: var(--sky);
+  --c-commands: var(--coral);
+  --brand-gradient: linear-gradient(135deg, #9BC2FF 0%, #6BA6FF 40%, #43C7B7 100%);
   --surface-border: #26313e;
   --surface-grid: rgba(255, 255, 255, .024);
   --surface-top: #171b22;

@@ -31,7 +31,7 @@ const chartMetricConfig = {
     },
     skills: {
       value: (row) => row.summary?.skill_calls || 0,
-      color: "#58d68d",
+      color: "#9bc2ff",
       unit: "skill calls",
       subject: "Field-agent skill usage",
     },
@@ -51,7 +51,7 @@ const chartMetricConfig = {
     },
     tools: {
       value: (row) => row.summary?.event_types?.tool_call || 0,
-      color: "#43c7b7",
+      color: "#58d68d",
       unit: "tool calls",
       subject: "Tool usage",
     },
