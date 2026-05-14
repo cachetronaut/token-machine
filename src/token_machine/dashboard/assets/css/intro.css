@@ -1,0 +1,255 @@
+.intro-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(67, 199, 183, .06), transparent 60%),
+    linear-gradient(180deg, #0d1014, #08090c);
+  overflow: hidden;
+  opacity: 1;
+  transition: opacity .55s ease-out;
+}
+
+.intro-overlay.intro-done {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.intro-overlay::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(67, 199, 183, .035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(67, 199, 183, .035) 1px, transparent 1px);
+  background-size: 36px 36px;
+  -webkit-mask-image: radial-gradient(circle at 50% 50%, #000 0%, transparent 78%);
+          mask-image: radial-gradient(circle at 50% 50%, #000 0%, transparent 78%);
+  opacity: 0;
+  animation: intro-grid-in .6s ease-out .1s forwards;
+}
+
+.intro-overlay::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(115deg,
+    transparent 42%,
+    color-mix(in srgb, var(--teal), transparent 78%) 50%,
+    transparent 58%);
+  mix-blend-mode: screen;
+  pointer-events: none;
+  opacity: 0;
+  animation: intro-scan-sweep 1.4s cubic-bezier(.6, .05, .3, 1) .35s forwards;
+}
+
+.intro-stage {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+}
+
+.intro-warp {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 1;
+  perspective: 600px;
+}
+
+.intro-warp i {
+  --angle: 0deg;
+  --start: 30px;
+  --end: 720px;
+  --dur: 1s;
+  --delay: 0s;
+  --thick: 1.4px;
+  --tint: var(--teal);
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: var(--thick);
+  border-radius: 1px;
+  background: linear-gradient(90deg,
+    transparent 0%,
+    color-mix(in srgb, var(--tint), transparent 60%) 35%,
+    color-mix(in srgb, var(--tint), white 30%) 80%,
+    #ffffff 100%);
+  transform: rotate(var(--angle)) translateX(var(--start));
+  transform-origin: 0 50%;
+  opacity: 0;
+  filter: drop-shadow(0 0 3px color-mix(in srgb, var(--tint), transparent 55%));
+  animation: intro-warp-streak var(--dur) cubic-bezier(.15, .55, .25, 1) var(--delay) forwards;
+}
+
+.intro-brackets {
+  position: absolute;
+  inset: 22%;
+  pointer-events: none;
+}
+
+.intro-brackets span {
+  position: absolute;
+  width: 28px;
+  height: 28px;
+  border: 1.5px solid var(--teal);
+  opacity: 0;
+  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--teal), transparent 50%));
+}
+
+.intro-brackets span:nth-child(1) { top: 0; left: 0; border-right: 0; border-bottom: 0; animation: intro-bracket-in .5s ease-out .25s forwards; }
+.intro-brackets span:nth-child(2) { top: 0; right: 0; border-left: 0; border-bottom: 0; animation: intro-bracket-in .5s ease-out .32s forwards; }
+.intro-brackets span:nth-child(3) { bottom: 0; left: 0; border-right: 0; border-top: 0; animation: intro-bracket-in .5s ease-out .39s forwards; }
+.intro-brackets span:nth-child(4) { bottom: 0; right: 0; border-left: 0; border-top: 0; animation: intro-bracket-in .5s ease-out .46s forwards; }
+
+.intro-wordmark {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  text-align: center;
+  z-index: 2;
+}
+
+.intro-wordmark svg {
+  width: clamp(280px, 56vw, 520px);
+  height: auto;
+  overflow: visible;
+}
+
+.intro-wordmark svg text {
+  font-family: var(--font-brand);
+  font-weight: 900;
+  font-size: 56px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.intro-stroke {
+  fill: transparent;
+  stroke: var(--teal);
+  stroke-width: 1.2;
+  stroke-dasharray: 1200;
+  stroke-dashoffset: 1200;
+  filter: drop-shadow(0 0 8px color-mix(in srgb, var(--teal), transparent 55%));
+  opacity: 0;
+  animation:
+    intro-stroke-draw 1.0s cubic-bezier(.55, .05, .25, 1) .95s forwards,
+    intro-stroke-appear .2s ease-out .95s forwards;
+}
+
+.intro-fill {
+  fill: var(--text);
+  opacity: 0;
+  transform-origin: 50% 50%;
+  animation: intro-fill-burst .6s cubic-bezier(.2, .8, .2, 1) 1.7s forwards;
+}
+
+.intro-caption {
+  height: 18px;
+  color: var(--teal);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: .32em;
+  text-transform: uppercase;
+  opacity: 0;
+  animation: intro-caption-in .4s ease-out 2.1s forwards;
+}
+
+.intro-caption .intro-cursor {
+  display: inline-block;
+  width: 8px;
+  margin-left: 3px;
+  color: var(--teal);
+  animation: intro-blink 1s steps(1) infinite;
+}
+
+.intro-pulse-ring {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--teal);
+  box-shadow: 0 0 0 0 color-mix(in srgb, var(--teal), transparent 30%);
+  opacity: 0;
+  animation: intro-pulse-ring 1.6s ease-out 2.3s forwards;
+}
+
+@keyframes intro-grid-in {
+  to { opacity: 1; }
+}
+
+@keyframes intro-scan-sweep {
+  0% { opacity: 0; transform: translateX(-30%); }
+  20% { opacity: 1; }
+  100% { opacity: 0; transform: translateX(30%); }
+}
+
+@keyframes intro-warp-streak {
+  0% {
+    opacity: 0;
+    width: 0;
+    transform: rotate(var(--angle)) translateX(var(--start));
+  }
+  10% { opacity: .9; width: 24px; }
+  60% { opacity: 1; width: 180px; }
+  100% {
+    opacity: 0;
+    width: 240px;
+    transform: rotate(var(--angle)) translateX(var(--end));
+  }
+}
+
+@keyframes intro-bracket-in {
+  from { opacity: 0; transform: scale(.6); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes intro-stroke-draw {
+  to { stroke-dashoffset: 0; }
+}
+
+@keyframes intro-stroke-appear {
+  to { opacity: 1; }
+}
+
+@keyframes intro-fill-burst {
+  0%   { opacity: 0; transform: scale(1.04); filter: blur(2px); }
+  60%  { opacity: 1; filter: blur(0); }
+  100% { opacity: 1; transform: scale(1); filter: blur(0); }
+}
+
+@keyframes intro-caption-in {
+  from { opacity: 0; transform: translateY(2px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes intro-blink {
+  50% { opacity: 0; }
+}
+
+@keyframes intro-pulse-ring {
+  0% { opacity: 1; box-shadow: 0 0 0 0 color-mix(in srgb, var(--teal), transparent 30%); }
+  100% { opacity: 0; box-shadow: 0 0 0 320px color-mix(in srgb, var(--teal), transparent 100%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .intro-overlay,
+  .intro-overlay::before,
+  .intro-overlay::after,
+  .intro-warp i,
+  .intro-brackets span,
+  .intro-stroke,
+  .intro-fill,
+  .intro-caption,
+  .intro-pulse-ring {
+    animation: none;
+  }
+  .intro-overlay { opacity: 0; pointer-events: none; }
+}

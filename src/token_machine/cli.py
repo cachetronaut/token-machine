@@ -6,6 +6,7 @@ import shlex
 import sys
 import threading
 import time
+import webbrowser
 from pathlib import Path
 from typing import Annotated
 
@@ -108,6 +109,13 @@ def serve(
             help="Refresh dashboard icons from the vendored icon source before serving.",
         ),
     ] = True,
+    open_browser: Annotated[
+        bool,
+        typer.Option(
+            "--browser/--no-browser",
+            help="Open the dashboard in your default browser once the server is ready.",
+        ),
+    ] = True,
 ) -> None:
     """Serve the browser dashboard."""
     if refresh_icons:
@@ -132,7 +140,16 @@ def serve(
         joined = ", ".join(str(path) for path in DEFAULT_WATCH_PATHS)
         typer.echo(f"Watching {joined} every {max(5, watch_interval)} seconds")
         typer.echo(f"Refreshing live snapshots every {max(2, live_interval)} seconds")
-    typer.echo(f"Serving Token Machine at http://{host}:{port}/")
+    url = f"http://{host}:{port}/"
+    typer.echo(f"Serving Token Machine at {url}")
+    if open_browser:
+        def _launch_browser() -> None:
+            time.sleep(0.8)
+            try:
+                webbrowser.open_new_tab(url)
+            except Exception:  # noqa: BLE001
+                pass
+        threading.Thread(target=_launch_browser, daemon=True).start()
     app_live_targets = () if watch else DEFAULT_WATCH_PATHS
     uvicorn.run(
         create_app(store, live_targets=app_live_targets),

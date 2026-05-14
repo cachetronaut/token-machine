@@ -12,6 +12,7 @@ import { renderLive, renderLiveError } from "./live.js";
 import { renderAppLegend, renderBars, renderModelProfiles } from "./models.js";
 import { initSectionToggles } from "./sections.js";
 import { renderSessions } from "./sessions.js";
+import { playIntro } from "./intro.js";
 
 const chartModes = {
   "daily-chart": "tokens",
@@ -156,6 +157,7 @@ async function refreshLive(signal) {
   }
 }
 
+playIntro();
 startPolling(refresh, { intervalMs: summaryPollMs });
 startPolling(refreshLive, { intervalMs: livePollMs });
 startDebugReloadPolling(() => {

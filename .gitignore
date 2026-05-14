@@ -1,3 +1,6 @@
+# Personal scratch / local-only files
+personal/
+
 # OS files
 .DS_Store
 .AppleDouble

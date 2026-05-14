@@ -16,6 +16,7 @@ DASHBOARD_VIEW_MODEL = DashboardViewModel(
         "/assets/css/charts.css",
         "/assets/css/model-cards.css",
         "/assets/css/timeline.css",
+        "/assets/css/intro.css",
     ),
     js_entrypoint="/assets/js/dashboard.js",
     logo_path="/assets/img/logo.png",
