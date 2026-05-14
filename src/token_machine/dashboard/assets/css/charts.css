@@ -101,7 +101,7 @@
 }
 
 .chart-area {
-  opacity: .26;
+  opacity: 1;
 }
 
 .chart-progress-clip {
@@ -119,6 +119,55 @@
 
 .chart-line-progress {
   pointer-events: none;
+}
+
+.chart-line-sheen {
+  pointer-events: none;
+  stroke-width: 2.6;
+  filter: none;
+  mix-blend-mode: screen;
+  opacity: .9;
+}
+
+.chart-dot {
+  opacity: .32;
+  transition: opacity .14s ease, r .14s ease;
+  filter: drop-shadow(0 0 4px color-mix(in srgb, var(--chart-color, var(--teal)), transparent 55%));
+}
+
+.chart-dot.is-active {
+  opacity: 1;
+  r: 4;
+}
+
+.chart-value-tag {
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity .35s ease;
+}
+
+.chart-motion-done .chart-value-tag {
+  opacity: 1;
+}
+
+.chart-value-guide {
+  stroke-width: 1;
+  opacity: .38;
+  stroke-dasharray: 3 4;
+}
+
+.chart-value-bg {
+  opacity: .92;
+  stroke-width: 1;
+  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--chart-color, var(--teal)), transparent 55%));
+}
+
+.chart-value-text {
+  fill: var(--text);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .04em;
 }
 
 .chart-ball {
@@ -290,11 +339,14 @@
   .chart-tab-switch,
   .chart-skeleton-line,
   .chart-skeleton-dot,
+  .chart-line-sheen,
   .donut-svg,
   .donut-segment,
   .donut-total {
     animation: none;
   }
+
+  .chart-line-sheen { display: none; }
 
   .donut-segment {
     opacity: 1;
