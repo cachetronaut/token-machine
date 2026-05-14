@@ -7,6 +7,10 @@
 - Use `reference/plan/` for task plans and handoff notes
 - Create subdirectories under `reference/` when needed
 - Place new code in the appropriate folder as those modules are introduced
+- Dashboard browser code is split into source and build output:
+  - `src/token_machine/dashboard/assets/ts/` holds the TypeScript source — edit here
+  - `src/token_machine/dashboard/assets/js/` holds the compiled JavaScript that FastAPI serves and that ships inside the Python package — never hand-edit; regenerate via `pnpm build:dashboard`
+  - Both directories are committed so the package can serve assets without a Node toolchain at install time; the stale-build guard in `pnpm check:dashboard` keeps them in sync
 
 ## Build, Test, and Development Commands
 - Use version as declared in `.python-version` and `pyproject.toml`.
